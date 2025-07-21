@@ -1,0 +1,12 @@
+data/
+data_yolo/
+runs/
+classification_models/
+inz/
+labels/
+images/
+single_all/
+*.pkl
+*.pt
+*.pth
+*.pyc
