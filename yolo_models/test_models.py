@@ -10,9 +10,11 @@ from PIL import Image
 models_paths = [
     r'runs\yolo_cells_detector_hybrid2\weights\best.pt',
     r'runs\yolo_cells_detector_hybrid3\weights\best.pt',
-    r'runs\yolo_cells_detector_mine\weights\best.pt',
-    r'runs\yolo_cells_detector2\weights\best.pt',
-    r'runs\yolo_cells_detector3\weights\best.pt'
+    # r'runs\yolo_cells_detector_mine\weights\best.pt',
+    # r'runs\yolo_cells_detector2\weights\best.pt',
+    # r'runs\yolo_cells_detector3\weights\best.pt',
+    r'yolo_models\models\yolo_detector_2107_100_10_16_7683\weights\best.pt',
+    r'yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt',
 ]
 
 # Lista folderów testowych

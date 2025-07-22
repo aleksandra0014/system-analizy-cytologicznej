@@ -15,7 +15,7 @@ import os
 from segments_func import *
 
 # === CONFIG ===
-yolo_model_path = r'C:/Users/aleks/OneDrive/Documents/inzynierka/runs/yolo_cells_detector_hybrid3/weights/best.pt'
+yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
 class_names = ['HSIL', 'LSIL', 'NSIL']
 def compute_iou(box1, box2):
     x1, y1, x2, y2 = box1

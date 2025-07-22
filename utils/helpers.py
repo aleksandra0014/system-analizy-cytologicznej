@@ -12,7 +12,7 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
-from create_syntetic_slides import segment_and_crop_cell
+from utils.create_syntetic_slides import segment_and_crop_cell
 
 def get_folder_summary(path: str) -> DataFrame:
     summary = []

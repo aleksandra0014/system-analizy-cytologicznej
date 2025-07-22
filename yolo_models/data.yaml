@@ -1,7 +1,7 @@
 # YOLOv8 - konfiguracja zbioru danych
 path: data_yolo
 train: syntetic_and_mine
-val: syntetic_and_mine 
+val: syntetic_and_mine_val 
 
 names:
   0: cell
