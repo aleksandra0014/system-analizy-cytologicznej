@@ -11,21 +11,20 @@ def extract_nucleus_and_cell_contours(image_path):
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
 
-    # ====== Maska jądra komórkowego ======
-    white_mask = cv2.inRange(image_rgb, np.array([220, 220, 220]), np.array([255, 255, 255]))
+    white_mask = cv2.inRange(image_rgb, np.array([220, 220, 220]), np.array([255, 255, 255])) #removing background
     not_white_mask = cv2.bitwise_not(white_mask)
 
     gray_nonwhite = gray[not_white_mask > 0]
     if len(gray_nonwhite) == 0:
         return image_rgb, np.zeros_like(gray), np.zeros_like(gray), np.zeros_like(gray)
 
-    mean_intensity = np.mean(gray_nonwhite)
-    dynamic_thresh = int(mean_intensity * 0.8)
+    mean_intensity = np.mean(gray_nonwhite) # mean intensity of non-white pixels
+    dynamic_thresh = int(mean_intensity * 0.8) # dynamic threshold based on mean intensity to detect dark nucleus
 
-    dark_mask = cv2.inRange(gray, 0, dynamic_thresh)
+    dark_mask = cv2.inRange(gray, 0, dynamic_thresh) # mask for dark areas
     dark_mask = cv2.bitwise_and(dark_mask, dark_mask, mask=not_white_mask)
 
-    # Wygładzenie maski jądra
+    # remove small noise
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     nucleus_clean = cv2.morphologyEx(dark_mask, cv2.MORPH_OPEN, kernel)
 
@@ -34,8 +33,8 @@ def extract_nucleus_and_cell_contours(image_path):
     mask_nucleus = np.zeros_like(gray)
     nucleus_contour_img = np.zeros_like(gray)
 
+    # choosing the contour with the lowest intensity
     if contours_nucleus:
-        # Znajdź kontur o NAJNIŻSZEJ średniej jasności → to jądro
         min_intensity = 999
         selected_contour = None
 
@@ -52,14 +51,11 @@ def extract_nucleus_and_cell_contours(image_path):
             cv2.drawContours(mask_nucleus, [selected_contour], -1, 255, -1)
             nucleus_contour_img = cv2.Canny(mask_nucleus, 50, 150)
 
-    # ====== Kontur całej komórki ======
     cell_mask = cv2.bitwise_not(white_mask)
     cell_blurred = cv2.GaussianBlur(cell_mask, (3, 3), 0)
     cell_contour = cv2.Canny(cell_blurred, 30, 100)
-
     cell_mask = cv2.bitwise_not(white_mask)
 
-    # Morfologiczne oczyszczenie maski komórki
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     cell_mask = cv2.morphologyEx(cell_mask, cv2.MORPH_CLOSE, kernel)
     cell_mask = cv2.morphologyEx(cell_mask, cv2.MORPH_OPEN, kernel)

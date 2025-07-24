@@ -12,12 +12,12 @@ import streamlit as st
 import tempfile
 import os
 
-from models import CytologyClassifier
+from classification.models import CytologyClassifier
 from xai_test import plot_gradcam_results2
 
 # === CONFIG ===
-yolo_model_path = r'C:/Users/aleks/OneDrive/Documents/inzynierka/runs/yolo_cells_detector_hybrid3/weights/best.pt'
-classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification_models\vgg16\24_0.001_50_07.07.pth'
+yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
+classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\24_0.001_50_07.07.pth'
 architecture = 'vgg16'  # 'resnet18' or 'custom_cnn'
 class_names = ['HSIL', 'LSIL', 'NSIL']
 
@@ -56,7 +56,6 @@ def main():
 
         # === DETEKCJA ===
         results = yolo(image_path)
-        # Współrzędne i klasy detekcji
         boxes_tensor = results[0].boxes.xyxy.cpu()
         classes_tensor = results[0].boxes.cls.cpu().int()
 
@@ -93,6 +92,11 @@ def main():
             st.write(f"{cls}: {labels.count(cls)} komórek")
         st.write(f"HSIL/LSIL group: {labels.count('HSIL/LSIL group')} komórek")
 
+        # Sort cells by label: HSIL, LSIL, NSIL, then others
+        label_order = {"HSIL": 0, "LSIL": 1, "NSIL": 2}
+        sorted_data = sorted(zip(crops, labels, tensors), key=lambda x: label_order.get(x[1], 99))
+        crops, labels, tensors = zip(*sorted_data) if sorted_data else ([], [], [])
+
         # === SIATKA KOMÓREK ===
         st.subheader("Wycięte komórki z klasyfikacjami")
         cols = 4
@@ -113,7 +117,7 @@ def main():
             if label == "HSIL/LSIL group":
                 continue
             st.markdown(f"**Komórka {i+1} ({label})**")
-            fig = plot_gradcam_results2(classifier.model, tensor, class_names=class_names, transform=None)
+            fig = plot_gradcam_results2(classifier.model, tensor, class_names=class_names, transform=None, model_name=architecture)
             st.pyplot(fig)
 
         os.remove(image_path)

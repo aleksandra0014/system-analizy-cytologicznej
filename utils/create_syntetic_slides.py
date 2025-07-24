@@ -92,7 +92,6 @@ def overlaps_soft(
 
 
 if __name__ == "__main__":
-    # === PARAMETRY ===
     CELL_FOLDER = r'C:\Users\aleks\OneDrive\Documents\inzynierka\single_all'
     EXTRA_FOLDERS = [r'C:\Users\aleks\OneDrive\Documents\inzynierka\data_single\LSIL', r'C:\Users\aleks\OneDrive\Documents\inzynierka\data_single\NSIL', r'C:\Users\aleks\OneDrive\Documents\inzynierka\data_single\HSIL']
 
@@ -102,25 +101,21 @@ if __name__ == "__main__":
     CELLS_PER_IMAGE = (5, 50)
     NUM_IMAGES = 200
 
-    # === POŁĄCZ WSZYSTKIE OBRAZY DO CELLS/ ===
     os.makedirs(CELL_FOLDER, exist_ok=True)
     for folder in EXTRA_FOLDERS:
         for ext in ('*.png', '*.jpg', '*.jpeg', '*.bmp'):
             for file in Path(folder).glob(ext):
                 shutil.copy(file, CELL_FOLDER)
 
-    # === KONWERSJA BMP -> JPG ===
     bmp_files = list(Path(CELL_FOLDER).glob("*.bmp"))
     for bmp_path in bmp_files:
         img = Image.open(bmp_path).convert("RGB")
         new_name = bmp_path.with_suffix('.jpg')
         img.save(new_name)
 
-    # === PRZYGOTUJ FOLDERY ===
     os.makedirs(OUTPUT_IMAGES, exist_ok=True)
     os.makedirs(OUTPUT_LABELS, exist_ok=True)
     
-    # === WCZYTAJ KOMÓRKI ===
     cell_paths = list(Path(CELL_FOLDER).glob("*.png")) + \
                 list(Path(CELL_FOLDER).glob("*.jpg")) + \
                 list(Path(CELL_FOLDER).glob("*.jpeg"))
@@ -130,7 +125,6 @@ if __name__ == "__main__":
         cropped, (w, h) = segment_and_crop_cell(img)
         cells.append((cropped, w, h))
 
-    # === GENERUJ OBRAZY ===
     for i in range(NUM_IMAGES):
         canvas = np.ones((IMAGE_SIZE[1], IMAGE_SIZE[0], 3), dtype=np.uint8) * 255
         label_lines = []
@@ -172,7 +166,6 @@ if __name__ == "__main__":
             y1 = int((y_center - bbox_height / 2) * IMAGE_SIZE[1])
             x2 = int((x_center + bbox_width / 2) * IMAGE_SIZE[0])
             y2 = int((y_center + bbox_height / 2) * IMAGE_SIZE[1])
-            #cv2.rectangle(canvas, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
         image_name = f"synth_{i:04d}.jpg"
         label_name = f"synth_{i:04d}.txt"

@@ -10,3 +10,4 @@ single_all/
 *.pt
 *.pth
 *.pyc
+sam2/

@@ -15,6 +15,13 @@ import numpy as np
 from utils.create_syntetic_slides import segment_and_crop_cell
 
 def get_folder_summary(path: str) -> DataFrame:
+    """
+    Summarizes image dimensions for each folder in the given path.
+    Args:
+        path (str): Path to the root directory containing folders of images.
+    Returns:
+        DataFrame: Summary statistics for each folder (file count, min/max width/height).
+    """
     summary = []
 
     for folder_name in os.listdir(path):
@@ -23,7 +30,7 @@ def get_folder_summary(path: str) -> DataFrame:
             dimensions = []
 
             for file_name in os.listdir(folder_path):
-                if file_name.lower().endswith('.bmp'):
+                if file_name.lower().endswith('.bmp', '.jpg',  '.png'):
                     file_path = os.path.join(folder_path, file_name)
                     if os.path.isfile(file_path):
                         try:
@@ -57,6 +64,11 @@ def get_folder_summary(path: str) -> DataFrame:
 
 
 def show_3_images_per_folder(base_path: str):
+    """
+    Displays 3 sample images from each folder in the base_path using matplotlib.
+    Args:
+        base_path (str): Path to the root directory containing folders of images.
+    """
     folders = [f for f in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, f))]
     n_folders = len(folders)
 
@@ -78,7 +90,15 @@ def show_3_images_per_folder(base_path: str):
     plt.show()
 
 
-def check_resizing(img_path, size):
+def check_resizing(img_path: str, size: int) -> None:
+    """
+    Loads an image, resizes it to the given size using OpenCV, and displays original and resized images.
+    Args:
+        img_path (str): Path to the image file.
+        size (int): Target size for width and height.
+    Returns:
+        None
+    """
     new_width = size
     new_height = size
     target_size = (new_width, new_height)
@@ -103,11 +123,32 @@ def check_resizing(img_path, size):
     plt.show()
 
 
-
-def safe_filename(text):
+def safe_filename(text: str) -> str:
+    """
+    Converts a string to a safe filename by replacing unsafe characters with underscores.
+    Args:
+        text (str): Input string.
+    Returns:
+        str: Safe filename string.
+    """
     return re.sub(r'[^\w\-_\.]', '_', text)
 
-def connect_folders(folders: Dict, output_folder: str, num_images: int, change_name: bool = True):
+def connect_folders(
+    folders: Dict[str, str],
+    output_folder: str,
+    num_images: int,
+    change_name: bool = True
+) -> None:
+    """
+    Copies a specified number of images from each folder to an output folder, optionally renaming them.
+    Args:
+        folders (Dict[str, str]): Mapping of class labels to folder paths.
+        output_folder (str): Path to the output directory.
+        num_images (int): Number of images to copy per class.
+        change_name (bool): Whether to rename images for uniqueness.
+    Returns:
+        None
+    """
     image_extensions = ('.jpg', '.jpeg', '.png', '.bmp')
     os.makedirs(output_folder, exist_ok=True)
 
@@ -147,8 +188,15 @@ def connect_folders(folders: Dict, output_folder: str, num_images: int, change_n
     print(f"\n✅ Całkowicie zapisano {len(used_filenames)} unikalnych obrazów do: {output_folder}")
 
 
-def move_files_to_val(base_dir, proporcion):
-    # === Ścieżki
+def move_files_to_val(base_dir: str, proporcion: float) -> None:
+    """
+    Moves a proportion of images and their labels from the training folder to a validation folder.
+    Args:
+        base_dir (str): Path to the base directory containing 'images' and 'labels' folders.
+        proporcion (float): Proportion of files to move to validation (0 < proporcion < 1).
+    Returns:
+        None
+    """
     images_dir = os.path.join(base_dir, "images")
     labels_dir = os.path.join(base_dir, "labels")
 
@@ -156,19 +204,15 @@ def move_files_to_val(base_dir, proporcion):
     val_images = os.path.join(val_dir, "images")
     val_labels = os.path.join(val_dir, "labels")
 
-    # === Utwórz foldery val/
     os.makedirs(val_images, exist_ok=True)
     os.makedirs(val_labels, exist_ok=True)
 
-    # === Pobierz listę obrazów
     image_files = [f for f in os.listdir(images_dir) if f.endswith(('.jpg', '.png', '.jpeg'))]
     random.shuffle(image_files)
 
-    # === Wydziel 10%
     val_split = int(proporcion * len(image_files))
     val_subset = image_files[:val_split]
 
-    # === Przenoszenie
     for file in val_subset:
         name = Path(file).stem
         shutil.move(os.path.join(images_dir, file), os.path.join(val_images, file))
@@ -180,7 +224,15 @@ def move_files_to_val(base_dir, proporcion):
 
     print(f" Przeniesiono {len(val_subset)} plików do walidacji: {val_dir}")
 
-def get_cropped_single_data(input_root, output_root):
+def get_cropped_single_data(input_root: str, output_root: str) -> None:
+    """
+    Crops and resizes cell images from each class subfolder in input_root, saving them to output_root.
+    Args:
+        input_root (str): Path to the root directory containing class folders with images.
+        output_root (str): Path to the root directory where cropped and resized images will be saved.
+    Returns:
+        None
+    """
     for class_name in os.listdir(input_root):
         input_class_dir = os.path.join(input_root, class_name)
         output_class_dir = os.path.join(output_root, class_name)

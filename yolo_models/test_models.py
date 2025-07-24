@@ -6,7 +6,6 @@ import random
 import matplotlib.pyplot as plt
 from PIL import Image
 
-# Lista modeli YOLO do przetestowania
 models_paths = [
     r'runs\yolo_cells_detector_hybrid2\weights\best.pt',
     r'runs\yolo_cells_detector_hybrid3\weights\best.pt',
@@ -17,20 +16,16 @@ models_paths = [
     r'yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt',
 ]
 
-# Lista folderów testowych
 test_folders = [
     r"data\LBC_slides\HSIL\pow 10",
     r"data\LBC_slides\LSIL\pow. 10",
     r"data\LBC_slides\NSIL\pow. 10"
 ]
 
-# Liczba zdjęć do przetestowania z każdego folderu
 num_samples = 15
 
-# Katalog, gdzie będą zapisywane wyniki
 output_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\tests"
 
-# Wybór wspólnych próbek dla każdego folderu (raz losowane)
 test_samples_per_folder = {}
 
 for folder in test_folders:

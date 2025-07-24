@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Optional
-from models import CNNClassifier, CytologyClassifier 
+from classification.models import CNNClassifier, CytologyClassifier 
 
 import torch
 import torch.nn as nn
@@ -397,7 +397,7 @@ def analyze_image_from_path(model, image_path: str, target_layer: str = 'feature
 
 if __name__=='__main__':
     model = CNNClassifier(num_classes=3)  
-    model.load_state_dict(torch.load('mine_cnn_0.001.32.50_v2.pth'))
+    model.load_state_dict(torch.load(r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\mine_cnn_0.001.32.50_v2.pth'))
     model.eval()
 
     image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single\NSIL\61b_1.bmp"
@@ -412,7 +412,8 @@ if __name__=='__main__':
         plot_gradcam_results(
             model, 
             image_path, 
-            class_names=['HSIL', 'LSIL', 'NSIL']
+            class_names=['HSIL', 'LSIL', 'NSIL'],
+            model_name='custom_cnn',
         )
 
 
