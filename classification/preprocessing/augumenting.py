@@ -23,11 +23,17 @@ def augment_image(image):
 if __name__ == "__main__":
     augment = augment_image  
 
-    input_root = r"\data\data_single_cropped"      
-    output_root = r"\data\data_single_cropped"      
+    input_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\train"      
+    output_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\train"      
     num_augments = 2 
 
     for cls_name in os.listdir(input_root):
+        if cls_name == 'HSIL':
+            num_augments = 1
+        elif cls_name == 'LSIL':
+            num_augments = 2
+        else:
+            continue
         cls_path = os.path.join(input_root, cls_name)
         if not os.path.isdir(cls_path):
             continue

@@ -1,3 +1,4 @@
+import sys
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -15,9 +16,11 @@ import os
 from classification.models import CytologyClassifier
 from xai_test import plot_gradcam_results2
 
+from classification.preprocessing import apply_clahe
+
 # === CONFIG ===
 yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
-classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\24_0.001_50_07.07.pth'
+classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\16_0_0003_50_3007.pth'
 architecture = 'vgg16'  # 'resnet18' or 'custom_cnn'
 class_names = ['HSIL', 'LSIL', 'NSIL']
 
@@ -26,7 +29,7 @@ classifier_transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5], std=[0.5])
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])  # old version for RGB input
 
 def predict_label(classifier, crop_np):
@@ -48,6 +51,7 @@ def main():
 
         image = Image.open(image_path).convert("RGB")
         image_np = np.array(image)
+        image_np = apply_clahe(image_np, clip_limit=2.0, tile_grid_size=(8, 8), use_median=True, median_kernel=3)
 
         # === MODELE ===
         yolo = YOLO(yolo_model_path)
@@ -112,13 +116,13 @@ def main():
 
 
         # === GRAD-CAM ===
-        st.subheader("GradCAM dla każdej komórki")
-        for i, (tensor, label) in enumerate(zip(tensors, labels)):
-            if label == "HSIL/LSIL group":
-                continue
-            st.markdown(f"**Komórka {i+1} ({label})**")
-            fig = plot_gradcam_results2(classifier.model, tensor, class_names=class_names, transform=None, model_name=architecture)
-            st.pyplot(fig)
+        # st.subheader("GradCAM dla każdej komórki")
+        # for i, (tensor, label) in enumerate(zip(tensors, labels)):
+        #     if label == "HSIL/LSIL group":
+        #         continue
+        #     st.markdown(f"**Komórka {i+1} ({label})**")
+        #     fig = plot_gradcam_results2(classifier.model, tensor, class_names=class_names, transform=None, model_name=architecture)
+        #     st.pyplot(fig)
 
         os.remove(image_path)
 

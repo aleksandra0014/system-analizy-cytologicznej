@@ -12,6 +12,16 @@ from torch.utils.tensorboard import SummaryWriter
 import datetime
 import seaborn as sns
 from collections import Counter
+from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import Subset, DataLoader
+from sklearn.metrics import f1_score
+import itertools
+import pandas as pd
+from tqdm import tqdm
+from sklearn.model_selection import KFold
+from torch.utils.data import Subset, DataLoader
+from torchvision.datasets import ImageFolder
+
 
 class CytologyClassifier:
     def __init__(self, num_classes=3, lr=0.0001, device=None, architecture='resnet18', class_counts=None):
@@ -141,7 +151,6 @@ class CytologyClassifier:
 
         self.writer.close()
 
-
     def evaluate(self, data_loader):
         self.model.eval()
         correct = total = 0
@@ -160,7 +169,8 @@ class CytologyClassifier:
             image = Image.open(image_path).convert("RGB")
             transform = transforms.Compose([
                 transforms.Resize((224, 224)),
-                transforms.ToTensor()
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
             ])
             image_tensor = transform(image).unsqueeze(0).to(self.device)
             output = self.model(image_tensor)
@@ -174,7 +184,8 @@ class CytologyClassifier:
     def load(self, path):
         self.model.load_state_dict(torch.load(path, map_location=self.device))
         self.model.to(self.device)
-    
+
+
 
 class CNNClassifier(nn.Module):
     def __init__(self, num_classes, input_size=(224, 224)):
@@ -182,7 +193,6 @@ class CNNClassifier(nn.Module):
 
         self.features = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=5),       # 224→220, old version for RGB
-            #nn.Conv2d(1, 32, kernel_size=5),       # 224→220, changed to 1 channel for grayscale
             nn.BatchNorm2d(32),
             nn.ReLU(),
 
@@ -223,7 +233,6 @@ class CNNClassifier(nn.Module):
         # Dynamiczne wyliczenie rozmiaru wejścia do warstwy liniowej
         with torch.no_grad():
             dummy_input = torch.zeros(1, 3, *input_size)  # old version for RGB
-            # dummy_input = torch.zeros(1, 1, *input_size)  # changed to 1 channel for grayscale
             dummy_output = self.features(dummy_input)
             flatten_size = dummy_output.view(1, -1).size(1)
 
@@ -307,3 +316,115 @@ class SVMClassifier:
         plt.ylabel('True')
         plt.title('Confusion Matrix')
         plt.show()
+
+
+import os
+import torch
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+from typing import List, Optional
+from collections import Counter
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader, Subset
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import f1_score
+
+def run_gridsearch_kfold(
+    data_dir: str,
+    transform,
+    architectures: List[str],
+    lrs: List[float],
+    batch_sizes: List[int],
+    num_epochs_list: List[int],
+    k_folds: int = 5,
+    device: Optional[str] = None,
+    output_csv: str = "gridsearch_results.csv"
+) -> None:
+    """
+    Performs k-fold cross-validation with grid search over selected architectures and hyperparameters.
+    
+    Args:
+        data_dir (str): Path to the root directory containing class folders (ImageFolder style).
+        transform: Torchvision transform to apply to the images.
+        architectures (List[str]): List of model architectures to evaluate (e.g., ['resnet18', 'vgg16']).
+        lrs (List[float]): List of learning rates to test.
+        batch_sizes (List[int]): List of batch sizes to test.
+        num_epochs_list (List[int]): List of epoch counts to train for.
+        k_folds (int): Number of folds for Stratified K-Fold CV.
+        device (Optional[str]): Device to use ('cuda', 'cpu'). Auto-detected if None.
+        output_csv (str): File name for saving grid search results.
+
+    Returns:
+        None. Saves results to a CSV file.
+    """
+    dataset = ImageFolder(root=data_dir, transform=transform)
+    class_names = dataset.classes
+    targets = dataset.targets
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    results = []
+
+    param_grid = list(itertools.product(architectures, lrs, batch_sizes, num_epochs_list))
+    print(f"🔍 Grid search over {len(param_grid)} combinations...")
+
+    for arch, lr, batch_size, num_epochs in tqdm(param_grid):
+        print(f"\n🧪 Testing: arch={arch}, lr={lr}, batch_size={batch_size}, epochs={num_epochs}")
+        kf = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
+
+        fold_accuracies = []
+        fold_f1s = []
+
+        for fold, (train_idx, val_idx) in enumerate(kf.split(np.zeros(len(targets)), targets)):
+            train_subset = Subset(dataset, train_idx)
+            val_subset = Subset(dataset, val_idx)
+
+            # Compute class counts only from training set
+            train_targets = [targets[i] for i in train_idx]
+            class_counts = Counter(train_targets)
+
+            train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False)
+
+            model = CytologyClassifier(
+                num_classes=len(class_names),
+                lr=lr,
+                architecture=arch,
+                class_counts=class_counts,
+                device=device
+            )
+
+            model.train(train_loader, val_loader, num_epochs=num_epochs)
+            acc = model.evaluate(val_loader)
+
+            # F1-score evaluation
+            model.model.eval()
+            all_preds, all_labels = [], []
+            with torch.no_grad():
+                for x, y in val_loader:
+                    x, y = x.to(device), y.to(device)
+                    preds = model.model(x).argmax(dim=1)
+                    all_preds.extend(preds.cpu().numpy())
+                    all_labels.extend(y.cpu().numpy())
+            f1 = f1_score(all_labels, all_preds, average='macro')
+
+            fold_accuracies.append(acc)
+            fold_f1s.append(f1)
+
+        result = {
+            "architecture": arch,
+            "lr": lr,
+            "batch_size": batch_size,
+            "epochs": num_epochs,
+            "mean_accuracy": np.mean(fold_accuracies),
+            "std_accuracy": np.std(fold_accuracies),
+            "mean_f1": np.mean(fold_f1s),
+            "std_f1": np.std(fold_f1s)
+        }
+        results.append(result)
+
+        print(f"✅ mean acc: {result['mean_accuracy']:.2f} | F1: {result['mean_f1']:.4f}")
+
+    # Save results to CSV
+    df = pd.DataFrame(results)
+    df.to_csv(output_csv, index=False)
+    print(f"\n📄 Results saved to: {output_csv}")

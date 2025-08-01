@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 from utils.create_syntetic_slides import segment_and_crop_cell
+import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 def get_folder_summary(path: str) -> DataFrame:
     """
@@ -30,7 +33,7 @@ def get_folder_summary(path: str) -> DataFrame:
             dimensions = []
 
             for file_name in os.listdir(folder_path):
-                if file_name.lower().endswith('.bmp', '.jpg',  '.png'):
+                if file_name.lower().endswith(('.bmp', '.jpg',  '.png')):
                     file_path = os.path.join(folder_path, file_name)
                     if os.path.isfile(file_path):
                         try:
@@ -224,40 +227,4 @@ def move_files_to_val(base_dir: str, proporcion: float) -> None:
 
     print(f" Przeniesiono {len(val_subset)} plików do walidacji: {val_dir}")
 
-def get_cropped_single_data(input_root: str, output_root: str) -> None:
-    """
-    Crops and resizes cell images from each class subfolder in input_root, saving them to output_root.
-    Args:
-        input_root (str): Path to the root directory containing class folders with images.
-        output_root (str): Path to the root directory where cropped and resized images will be saved.
-    Returns:
-        None
-    """
-    for class_name in os.listdir(input_root):
-        input_class_dir = os.path.join(input_root, class_name)
-        output_class_dir = os.path.join(output_root, class_name)
 
-        if not os.path.isdir(input_class_dir):
-            continue
-
-        os.makedirs(output_class_dir, exist_ok=True)
-
-        for file_name in os.listdir(input_class_dir):
-            if not file_name.lower().endswith((".jpg", ".jpeg", ".png", ".bmp")):
-                continue
-
-            input_path = os.path.join(input_class_dir, file_name)
-            output_path = os.path.join(output_class_dir, file_name)
-
-            img = cv2.imread(input_path)
-            if img is None:
-                print(f" Nie można wczytać: {input_path}")
-                continue
-
-            cropped_img, (w, h) = segment_and_crop_cell(img)
-            resized_img = cv2.resize(cropped_img, (224, 224))
-            cv2.imwrite(output_path, resized_img)
-            print(f" Zapisano: {output_path}")
-
-if __name__=='__main__':
-    get_cropped_single_data(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single', r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped')
