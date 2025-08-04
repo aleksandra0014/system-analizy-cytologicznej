@@ -20,8 +20,8 @@ from classification.preprocessing import apply_clahe
 
 # === CONFIG ===
 yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
-classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\16_0_0003_50_3007.pth'
-architecture = 'vgg16'  # 'resnet18' or 'custom_cnn'
+classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_001_50_0308.pth'
+architecture = 'resnet18'  # 'resnet18' or 'custom_cnn'
 class_names = ['HSIL', 'LSIL', 'NSIL']
 
 

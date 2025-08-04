@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def extract_nucleus_and_cell_contours(image_path):
     image = cv2.imread(image_path)
     if image is None:
@@ -59,7 +60,6 @@ def extract_nucleus_and_cell_contours(image_path):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     cell_mask = cv2.morphologyEx(cell_mask, cv2.MORPH_CLOSE, kernel)
     cell_mask = cv2.morphologyEx(cell_mask, cv2.MORPH_OPEN, kernel)
-
 
     return image_rgb, mask_nucleus, nucleus_contour_img, cell_mask, cell_contour
 

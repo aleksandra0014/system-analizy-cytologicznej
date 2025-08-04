@@ -8,17 +8,26 @@ class CellNucleusDataset(Dataset):
     def __init__(self, image_dir, mask_dir, filenames, transform=None):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
-        self.filenames = filenames
         self.transform = transform or T.Compose([
             T.Resize((256, 256)),
             T.ToTensor()
         ])
 
+        self.valid_filenames = []
+        for name in filenames:
+            base = os.path.splitext(name)[0]
+            cell_path = os.path.join(mask_dir, base, "cell.png")
+            nucleus_path = os.path.join(mask_dir, base, "nucleus.png")
+            if os.path.exists(cell_path) and os.path.exists(nucleus_path):
+                self.valid_filenames.append(name)
+            else:
+                print(f"Skipped {name} — no mask.")
+
     def __len__(self):
-        return len(self.filenames)
+        return len(self.valid_filenames)
 
     def __getitem__(self, idx):
-        img_name = self.filenames[idx]
+        img_name = self.valid_filenames[idx]
         base_name = os.path.splitext(img_name)[0]
 
         img_path = os.path.join(self.image_dir, img_name)
@@ -38,4 +47,3 @@ class CellNucleusDataset(Dataset):
         mask = torch.stack([cell_mask, nucleus_mask], dim=0)
 
         return image, mask
-

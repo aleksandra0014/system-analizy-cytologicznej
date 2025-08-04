@@ -30,15 +30,15 @@ if __name__ == '__main__':
     print("Train class distribution:")
     train_class_counts = Counter(train_dataset.targets)
     for idx, class_name in enumerate(train_dataset.classes):
-        print(f"  {class_name}: {train_class_counts[idx]} próbek")
+        print(f"  {class_name}: {train_class_counts[idx]}")
     val_class_counts = Counter(val_dataset.targets)
     test_class_counts = Counter(test_dataset.targets)
 
     print("Val class distribution:")
     for idx, class_name in enumerate(val_dataset.classes):
-        print(f"  {class_name}: {val_class_counts[idx]} próbek")
+        print(f"  {class_name}: {val_class_counts[idx]}")
 
     print("Test class distribution:")
     for idx, class_name in enumerate(test_dataset.classes):
-        print(f"  {class_name}: {test_class_counts[idx]} próbek")
+        print(f"  {class_name}: {test_class_counts[idx]}")
 

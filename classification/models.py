@@ -3,10 +3,9 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import models
+from torchvision import models, transforms
 import matplotlib.pyplot as plt
 from PIL import Image
-from torchvision import transforms
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import datetime
@@ -14,11 +13,9 @@ import seaborn as sns
 from collections import Counter
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import Subset, DataLoader
-from sklearn.metrics import f1_score
 import itertools
 import pandas as pd
 from tqdm import tqdm
-from sklearn.model_selection import KFold
 from torch.utils.data import Subset, DataLoader
 from torchvision.datasets import ImageFolder
 
@@ -69,7 +66,7 @@ class CytologyClassifier:
         best_val_loss = float('inf')
         best_val_f1 = 0
         best_model_state = None
-        patience_counter = 0  # ← early stopping counter
+        patience_counter = 0  
 
         for epoch in range(num_epochs):
             self.model.train()
@@ -137,17 +134,17 @@ class CytologyClassifier:
         if best_model_state:
             self.model.load_state_dict(best_model_state)
 
-        plt.figure(figsize=(8, 4))
-        plt.plot(range(1, len(losses) + 1), losses, marker='o', label='Train Loss')
-        if any(v is not None for v in val_losses):
-            plt.plot(range(1, len(val_losses) + 1), val_losses, marker='x', label='Val Loss')
-        plt.title('Loss during training')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
+        # plt.figure(figsize=(8, 4))
+        # plt.plot(range(1, len(losses) + 1), losses, marker='o', label='Train Loss')
+        # if any(v is not None for v in val_losses):
+        #     plt.plot(range(1, len(val_losses) + 1), val_losses, marker='x', label='Val Loss')
+        # plt.title('Loss during training')
+        # plt.xlabel('Epoch')
+        # plt.ylabel('Loss')
+        # plt.legend()
+        # plt.grid(True)
+        # plt.tight_layout()
+        # plt.show()
 
         self.writer.close()
 
