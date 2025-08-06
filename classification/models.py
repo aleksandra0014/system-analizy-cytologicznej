@@ -18,6 +18,9 @@ import pandas as pd
 from tqdm import tqdm
 from torch.utils.data import Subset, DataLoader
 from torchvision.datasets import ImageFolder
+import os
+from typing import List, Optional
+
 
 
 class CytologyClassifier:
@@ -27,12 +30,19 @@ class CytologyClassifier:
         self.architecture = architecture
         if self.architecture == 'resnet18':
             self.model = models.resnet18(pretrained=True)
+            self.model = models.resnet18(pretrained=True)
+            for name, param in self.model.named_parameters():
+                if name.startswith('conv1') or name.startswith('bn1') or \
+                name.startswith('layer1') or name.startswith('layer2'):
+                    param.requires_grad = False 
+                else:
+                    param.requires_grad = True 
             self.model.fc = torch.nn.Linear(self.model.fc.in_features, num_classes)
 
         elif self.architecture == 'vgg16':
             self.model = models.vgg16(pretrained=True)
-            for param in self.model.features.parameters():
-                param.requires_grad = False
+            for name, param in list(self.model.features.named_parameters())[-8:]:
+                param.requires_grad = True
             self.model.classifier = torch.nn.Sequential(
                 torch.nn.Linear(25088, 512),
                 torch.nn.ReLU(),
@@ -167,8 +177,7 @@ class CytologyClassifier:
             transform = transforms.Compose([
                 transforms.Resize((224, 224)),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-            ])
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
             image_tensor = transform(image).unsqueeze(0).to(self.device)
             output = self.model(image_tensor)
             probabilities = F.softmax(output, dim=1)
@@ -314,18 +323,6 @@ class SVMClassifier:
         plt.title('Confusion Matrix')
         plt.show()
 
-
-import os
-import torch
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
-from typing import List, Optional
-from collections import Counter
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, Subset
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import f1_score
 
 def run_gridsearch_kfold(
     data_dir: str,
