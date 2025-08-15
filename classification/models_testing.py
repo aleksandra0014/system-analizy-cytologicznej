@@ -76,12 +76,16 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset)
 
     model_info = [
-        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0.0001_50_06.07.pth', 'ResNet18', 'resnet18'),
-        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet_cytologia50.pth', 'ResNet18', 'resnet18'),
-        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\24_0.001_50_07.07.pth', 'VGG16', 'vgg16'),
-        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg_cytologia30_single_24_0.01.pth', 'VGG16', 'vgg16'),
-        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\custom_cnn\32_0.0001_50_06.07', 'CustomCNN', 'custom_cnn'),
-        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\mine_cnn_0.001.32.50_v2.pth', 'CustomCNN', 'custom_cnn'),
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_001_50_0308.pth', 'ResNet18', 'resnet18'),
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_0001_50_0608.pth', 'ResNet18', 'resnet18'),
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_001_50_0608.pth', 'ResNet18', 'resnet18'),
+
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\16_0_001_50_0308.pth', 'VGG16', 'vgg16'),
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\16_0_0001_50_0608.pth', 'VGG16', 'vgg16'),
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_001_50_0208.pth', 'VGG16', 'vgg16'),
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth', 'VGG16', 'vgg16'),
+
+        (r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\custom_cnn\32_0_001_50_0308.pth', 'CustomCNN', 'custom_cnn')
     ]
 
 

@@ -14,7 +14,6 @@ import tempfile
 import os
 
 from classification.models import CytologyClassifier
-from xai_test import plot_gradcam_results2
 
 from classification.preprocessing import apply_clahe
 
@@ -23,13 +22,14 @@ yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\mod
 classifier_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth'
 architecture = 'vgg16'  # 'resnet18' or 'custom_cnn'
 class_names = ['HSIL', 'LSIL', 'NSIL']
+unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208.pth"
 
 
 classifier_transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 ])  # old version for RGB input
 
 def predict_label(classifier, crop_np):

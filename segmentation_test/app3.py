@@ -15,6 +15,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from segmentation.models import UNet
 from classification.preprocessing import apply_clahe
+import joblib
+import pandas as pd
+
+from segmentation.features import extract_features
+from sklearn.preprocessing import StandardScaler
+
 
 # === KONFIGURACJA ===
 unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208.pth"
@@ -118,6 +124,21 @@ def nms_keep_largest_box(boxes, iou_thresh=0.4):
 
     return selected_indices
 
+def predict(model, label_encoder, input_features, scaler):
+    feature_names = ['N', 'C', 'NCr', 'Np', 'Cp', 'NCp', 'MinA', 'MinAr', 'MaxA', 'MaxAr', 'Nar', 'Car', 'NCar', 'NExt', 'CExt', 'NCExt', 'NSol', 'CSol', 'NCs', 'EqN', 'EqC', 'NCEq', 'OrN', 'OrC', 'NCOr']
+    try:
+        X_new = pd.DataFrame([[input_features[feat] for feat in feature_names]], columns=feature_names)
+    except KeyError as e:
+        raise ValueError(f"Brakuje cechy w słowniku: {e}")
+
+    X_new_scaled = scaler.transform(X_new)
+
+    y_pred_encoded = model.predict(X_new_scaled)
+    predicted_class = label_encoder.inverse_transform(y_pred_encoded)[0]
+
+    return predicted_class
+
+
 def main():
     st.title("Analiza slajdu cytologicznego – UNet (maska jądra i komórki)")
 
@@ -130,7 +151,7 @@ def main():
 
         image = Image.open(image_path).convert("RGB")
         image_np = np.array(image)
-        image_np = apply_clahe(image_np, clip_limit=2.0, tile_grid_size=(8, 8), use_median=True, median_kernel=3)
+        # image_np = apply_clahe(image_np, clip_limit=2.0, tile_grid_size=(8, 8), use_median=True, median_kernel=3)
 
         # === MODELE ===
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -155,6 +176,12 @@ def main():
         boxes = boxes_tensor[cell_mask].numpy().astype(int)
 
         crops, nuclei_masks, cell_masks = [], [], []
+        predicted_classes = []
+        # === KLASYFIKATOR ===
+        model_class = joblib.load(r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\best_model_XGBoost.pkl")
+        label_encoder = joblib.load(r'C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\label_encoder.pkl')
+        scaler = joblib.load(r'C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\scaler.pkl')
+
 
         for (x1, y1, x2, y2) in boxes:
             crop = image_np[y1:y2, x1:x2]
@@ -178,6 +205,12 @@ def main():
             cell_masks.append(mask_cell.astype(np.uint8))
             crops.append(crop)
 
+            # === PREDYKCJA KLASY ===
+            features = extract_features(best_nucleus, mask_cell)
+            print(features)
+            predicted_class = predict(model=model_class, label_encoder=label_encoder, input_features=features, scaler=scaler)
+            predicted_classes.append(predicted_class)
+
             os.remove(tmp_crop_path)
 
         # === SLAJD Z BBOX ===
@@ -197,7 +230,7 @@ def main():
             with row[1]:
                 st.image(cv2.resize(nuclei_masks[i], (128, 128)), caption="Najlepsze jądro", channels="GRAY")
             with row[2]:
-                st.image(cv2.resize(cell_masks[i], (128, 128)), caption="Maska komórki", channels="GRAY")
+                st.image(cv2.resize(cell_masks[i], (128, 128)), caption=f"Maska komórki\nKlasa: {predicted_classes[i]}", channels="GRAY")
 
         os.remove(image_path)
 

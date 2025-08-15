@@ -77,7 +77,7 @@ def apply_clahe(
         median_kernel: int = 3
     ) -> np.ndarray:
         """
-        Apply CLAHE to a  RGB image.
+        Apply CLAHE to a RGB image.
 
         Args:
             image (np.ndarray): Input image.

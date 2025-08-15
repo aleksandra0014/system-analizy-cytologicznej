@@ -1,0 +1,6 @@
+Model,Best_Params,Dataset,Accuracy,Precision,Recall,F1
+SVM,"{'C': 1, 'gamma': 1, 'kernel': 'rbf'}",Test,0.6853932584269663,0.6587301587301587,0.6615476045760903,0.6578121930234606
+NeuralNet,"{'activation': 'tanh', 'alpha': 0.001, 'hidden_layer_sizes': (128, 64), 'learning_rate_init': 0.01, 'max_iter': 500}",Test,0.6629213483146067,0.6420486700622524,0.650985318151735,0.6392354234300454
+RandomForest,"{'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 200}",Test,0.7078651685393258,0.6762056173820881,0.6790523657090374,0.6711671854234548
+XGBoost,"{'colsample_bytree': 0.8, 'learning_rate': 0.2, 'max_depth': 3, 'n_estimators': 200, 'subsample': 0.8}",Test,0.7415730337078652,0.716026951321069,0.7140483812147981,0.7070707070707071
+LightGBM,"{'colsample_bytree': 1.0, 'learning_rate': 0.1, 'max_depth': -1, 'n_estimators': 100, 'num_leaves': 31, 'subsample': 0.8}",Test,0.7303370786516854,0.6977697511753239,0.7000688844766806,0.6958034355294629

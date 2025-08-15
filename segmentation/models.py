@@ -1,4 +1,6 @@
+import os
 from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
@@ -254,10 +256,10 @@ def plot_results(model, image_path, device,  threshold_nuclei=0.3, threshold_cel
     axs[0].imshow(pil_image)
     axs[0].set_title("Oryginal")
 
-    axs[1].imshow(cell_mask.numpy(), cmap='gray')
+    axs[1].imshow(cell_mask, cmap='gray')
     axs[1].set_title("Mask: cell")
 
-    axs[2].imshow(nucleus_mask.numpy(), cmap='gray')
+    axs[2].imshow(nucleus_mask, cmap='gray')
     axs[2].set_title("Mask: nucleus")
 
     for ax in axs:
@@ -265,6 +267,4 @@ def plot_results(model, image_path, device,  threshold_nuclei=0.3, threshold_cel
 
     plt.tight_layout()
     plt.show()
-
-
 

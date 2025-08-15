@@ -1,7 +1,9 @@
+import os
 import cv2
 import numpy as np
-from skimage.morphology import convex_hull_image
-
+import pandas as pd
+import torch
+from segmentation.models import UNet, predict_masks, preprocess_image
 
 def get_largest_contour(mask):
     contours, _ = cv2.findContours((mask > 0).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -32,23 +34,21 @@ def compute_region_features(mask):
         theta = 0.5 * np.arctan2(2 * M["mu11"], M["mu20"] - M["mu02"])
     orientation = np.tan(2 * theta)
 
-    # Używamy tylko punktów z konturu (a nie całej maski!)
-    points = contour[:, 0, :]
-    if len(points) < 2:
-        min_axis = max_axis = 0
-    else:
-        # MaxA: największa odległość między punktami konturu
-        dmax = 0
-        dmin = np.inf
-        for i in range(len(points)):
-            for j in range(i + 1, len(points)):
-                d = np.linalg.norm(points[i] - points[j])
-                if d > dmax:
-                    dmax = d
-                if d < dmin:
-                    dmin = d
-        max_axis = dmax
-        min_axis = dmin
+
+    rect = cv2.minAreaRect(contour)
+    (w, h) = rect[1]
+    minA = min(w, h)
+
+    hull = cv2.convexHull(contour)
+    pts = hull[:, 0, :]
+    dmax = 0
+    for i in range(len(pts)):
+        for j in range(i + 1, len(pts)):
+            d = np.linalg.norm(pts[i] - pts[j])
+            if d > dmax:
+                dmax = d
+    maxA = dmax
+
 
     return {
         "area": area,
@@ -58,8 +58,8 @@ def compute_region_features(mask):
         "solidity": solidity,
         "equivalent_diameter": equivalent_diameter,
         "orientation": orientation,
-        "min_axis": min_axis,
-        "max_axis": max_axis,
+        "min_axis": minA,
+        "max_axis": maxA,
     }
 
 
@@ -121,15 +121,85 @@ def extract_features(nucleus_mask, cell_mask):
 
 
 if __name__ == "__main__":
-    from models import *
+
     model = UNet(in_channels=3, out_channels=2)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.load_state_dict(torch.load(r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208_40_clahe.pth"))
+    model.load_state_dict(torch.load(
+        r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208.pth",
+        map_location=device
+    ))
     model.to(device)
-    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped2\HSIL\51b_1.bmp"
-    pil_image, input_tensor = preprocess_image(image_path)
-    predicted_masks = predict_masks(model, input_tensor, device, threshold_nuclei=0.3, threshold_cell=0.5)
-    cell_mask = predicted_masks[0]
-    nucleus_mask = predicted_masks[1]
-    features = extract_features(nucleus_mask, cell_mask)
-    print(features)
+    model.eval() 
+
+    base_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3"
+    splits = ["train", "test", "val"]
+
+    for split in splits:
+        split_dir = os.path.join(base_dir, split)
+        if not os.path.isdir(split_dir):
+            print(f"[WARN] Brak katalogu: {split_dir}")
+            continue
+
+        rows = []
+        processed = 0
+
+        for subfolder in os.listdir(split_dir):
+            subfolder_path = os.path.join(split_dir, subfolder)
+            if not os.path.isdir(subfolder_path):
+                continue
+
+            for fname in os.listdir(subfolder_path):
+                if not fname.lower().endswith(('.bmp', '.png', '.jpg', '.jpeg')):
+                    continue
+
+                image_path = os.path.join(subfolder_path, fname)
+
+                try:
+
+                    pil_image, input_tensor = preprocess_image(image_path)
+
+                    if input_tensor is None or input_tensor.ndim != 4:
+                        raise ValueError("preprocess_image zwrócił zły input_tensor")
+
+                    input_tensor = input_tensor.to(device)
+
+                    with torch.no_grad(): 
+                        predicted_masks = predict_masks(
+                            model,
+                            input_tensor,
+                            device,
+                            threshold_nuclei=0.2,  
+                            threshold_cell=0.5
+                        )
+
+                    cell_mask = (predicted_masks[0] > 0).astype(np.uint8)
+                    nucleus_mask = (predicted_masks[1] > 0).astype(np.uint8)
+
+                    cpos = int(cell_mask.sum())
+                    npos = int(nucleus_mask.sum())
+                    if cpos == 0 or npos == 0:
+                        print(f"[INFO] Pusta maska w {image_path} -> cell:{cpos} nucleus:{npos}")
+
+                    features = extract_features(nucleus_mask, cell_mask)
+
+                except Exception as e:
+                    import traceback
+                    print(f"[ERROR] {image_path}: {e}")
+                    traceback.print_exc()
+                    continue 
+
+                features["class"] = subfolder
+
+                rows.append(features)
+                processed += 1
+
+        # Zapis CSV tylko jeśli coś przetworzono
+        out_csv = os.path.join(base_dir, f"features_{split}.csv")
+        if len(rows) == 0:
+            print(f"[WARN] Brak wierszy dla splitu '{split}'. Nie zapisuję CSV.")
+        else:
+            df = pd.DataFrame(rows)
+            df.to_csv(out_csv, index=False)
+            print(f"[OK] Zapisano {out_csv} z {len(df)} wierszami (przetworzono {processed} plików).")
+
+    

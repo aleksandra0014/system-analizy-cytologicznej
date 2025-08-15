@@ -30,7 +30,6 @@ class CytologyClassifier:
         self.architecture = architecture
         if self.architecture == 'resnet18':
             self.model = models.resnet18(pretrained=True)
-            self.model = models.resnet18(pretrained=True)
             for name, param in self.model.named_parameters():
                 if name.startswith('conv1') or name.startswith('bn1') or \
                 name.startswith('layer1') or name.startswith('layer2'):
@@ -263,65 +262,7 @@ class CNNClassifier(nn.Module):
         return x
 
 
-class SVMClassifier:
-    def __init__(self, model, model_name, num_classes=3):
-        from sklearn.svm import SVC
-        self.svm = SVC(class_weight="balanced")
-        self.model = model
-        self.num_classes = num_classes
-        self.model_name = model_name
 
-    def get_features(self, model, data_loader, model_name):
-        if model_name == 'resnet18':
-            features = []
-            labels = []
-            for images, lbls in data_loader:
-                images = images.to(model.device)
-                with torch.no_grad():
-                    x = model.model.conv1(images)
-                    x = model.model.bn1(x)
-                    x = model.model.relu(x)
-                    x = model.model.maxpool(x)
-                    x = model.model.layer1(x)
-                    x = model.model.layer2(x)
-                    x = model.model.layer3(x)
-                    x = model.model.layer4(x)
-                    x = model.model.avgpool(x)
-                    feats = torch.flatten(x, 1).cpu().numpy()
-                features.append(feats)
-                labels.append(lbls.numpy())
-        elif model_name == 'vgg16':
-            features = []
-            labels = []
-            for images, lbls in data_loader:
-                images = images.to(model.device)
-                with torch.no_grad():
-                    x = model.model.features(images)
-                    x = x.view(x.size(0), -1).cpu().numpy()
-                features.append(x)
-                labels.append(lbls.numpy())
-        features = np.concatenate(features)
-        labels = np.concatenate(labels)   
-        return features, labels
-
-    def fit(self, X, y):
-        self.svm.fit(X, y)
-
-    def predict(self, X):
-        return self.svm.predict(X)
-
-    def predict_proba(self, X):
-        return self.svm.decision_function(X)
-    
-    def evaluate(self, model, svm_preds, test_labels):
-        print(classification_report(test_labels, svm_preds, target_names=model.class_names))
-        cm = confusion_matrix(test_labels, svm_preds)
-        plt.figure(figsize=(10, 7))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=model.class_names, yticklabels=model.class_names)
-        plt.xlabel('Predicted') 
-        plt.ylabel('True')
-        plt.title('Confusion Matrix')
-        plt.show()
 
 
 def run_gridsearch_kfold(
