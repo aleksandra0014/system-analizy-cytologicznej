@@ -219,6 +219,7 @@ def main():
             cv2.rectangle(canvas, (x1, y1), (x2, y2), (0, 255, 0), 2)
         st.image(canvas, caption="Slajd z wykrytymi komórkami")
 
+
         # === SIATKA KOMÓREK ===
         st.subheader("Wycięte komórki z najlepszym jądrem i maską komórki")
 
@@ -230,7 +231,7 @@ def main():
             with row[1]:
                 st.image(cv2.resize(nuclei_masks[i], (128, 128)), caption="Najlepsze jądro", channels="GRAY")
             with row[2]:
-                st.image(cv2.resize(cell_masks[i], (128, 128)), caption=f"Maska komórki\nKlasa: {predicted_classes[i]}", channels="GRAY")
+                st.image(cv2.resize(cell_masks[i], (128, 128)), caption=f"Klasa: {predicted_classes[i]}", channels="GRAY")
 
         os.remove(image_path)
 
