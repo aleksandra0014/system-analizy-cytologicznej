@@ -12,7 +12,7 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
-from utils.create_syntetic_slides import segment_and_crop_cell
+from create_syntetic_slides import segment_and_crop_cell
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -27,26 +27,26 @@ def get_folder_summary(path: str) -> DataFrame:
     """
     summary = []
 
-    for folder_name in os.listdir(path):
-        folder_path = os.path.join(path, folder_name)
-        if os.path.isdir(folder_path):
-            dimensions = []
-
-            for file_name in os.listdir(folder_path):
-                if file_name.lower().endswith(('.bmp', '.jpg',  '.png')):
-                    file_path = os.path.join(folder_path, file_name)
-                    if os.path.isfile(file_path):
-                        try:
-                            with Image.open(file_path) as img:
-                                width, height = img.size
-                                dimensions.append((width, height))
-                        except Exception as e:
-                            print(f"Błąd przy pliku {file_path}: {e}")
-
+    def process_folder(folder_path, folder_name_prefix=""):
+        dimensions = []
+        for entry in os.listdir(folder_path):
+            entry_path = os.path.join(folder_path, entry)
+            if os.path.isdir(entry_path):
+                # Rekurencyjnie przetwarzaj podfoldery
+                process_folder(entry_path, folder_name_prefix + entry + "/")
+            elif entry.lower().endswith((".bmp", ".jpg", ".png")) and os.path.isfile(entry_path):
+                try:
+                    with Image.open(entry_path) as img:
+                        width, height = img.size
+                        dimensions.append((width, height))
+                except Exception as e:
+                    print(f"Błąd przy pliku {entry_path}: {e}")
+        # Dodaj podsumowanie tylko jeśli folder zawiera obrazy lub jest pusty (nie liczymy podfolderów)
+        if dimensions or not any(os.path.isdir(os.path.join(folder_path, f)) for f in os.listdir(folder_path)):
             if dimensions:
                 widths, heights = zip(*dimensions)
                 summary.append({
-                    'Folder': folder_name,
+                    'Folder': folder_name_prefix.rstrip("/"),
                     'Liczba plików': len(dimensions),
                     'Minimalna szerokość': min(widths),
                     'Minimalna wysokość': min(heights),
@@ -55,13 +55,18 @@ def get_folder_summary(path: str) -> DataFrame:
                 })
             else:
                 summary.append({
-                    'Folder': folder_name,
+                    'Folder': folder_name_prefix.rstrip("/"),
                     'Liczba plików': 0,
                     'Minimalna szerokość': None,
                     'Minimalna wysokość': None,
                     'Maksymalna szerokość': None,
                     'Maksymalna wysokość': None
                 })
+
+    for folder_name in os.listdir(path):
+        folder_path = os.path.join(path, folder_name)
+        if os.path.isdir(folder_path):
+            process_folder(folder_path, folder_name_prefix=folder_name)
 
     return pd.DataFrame(summary)
 
