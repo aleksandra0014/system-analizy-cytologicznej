@@ -68,3 +68,9 @@ test_dataset = CellNucleusDataset(image_dir, mask_dir, test_filenames)
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
+if __name__ == "__main__":
+    print(f"Train dataset size: {len(train_dataset)}")
+    print(f"Validation dataset size: {len(val_dataset)}")
+    print(f"Test dataset size: {len(test_dataset)}")
+    

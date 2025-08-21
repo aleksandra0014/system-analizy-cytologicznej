@@ -6,10 +6,28 @@ import torch
 from segmentation.models import UNet, predict_masks, preprocess_image
 
 def get_largest_contour(mask):
+    """
+    Finds the largest contour in a binary mask.
+
+    Args:
+        mask (np.ndarray): Binary mask image.
+
+    Returns:
+        np.ndarray | None: The largest contour found, or None if no contours exist.
+    """
     contours, _ = cv2.findContours((mask > 0).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return max(contours, key=cv2.contourArea) if contours else None
 
 def compute_region_features(mask):
+    """
+    Computes geometric features for the largest region in a binary mask.
+
+    Args:
+        mask (np.ndarray): Binary mask image.
+
+    Returns:
+        dict | None: Dictionary of region features, or None if no region found.
+    """
     mask = (mask > 0).astype(np.uint8)
     contour = get_largest_contour(mask)
     if contour is None:
@@ -34,7 +52,6 @@ def compute_region_features(mask):
         theta = 0.5 * np.arctan2(2 * M["mu11"], M["mu20"] - M["mu02"])
     orientation = np.tan(2 * theta)
 
-
     rect = cv2.minAreaRect(contour)
     (w, h) = rect[1]
     minA = min(w, h)
@@ -48,7 +65,6 @@ def compute_region_features(mask):
             if d > dmax:
                 dmax = d
     maxA = dmax
-
 
     return {
         "area": area,
@@ -64,6 +80,16 @@ def compute_region_features(mask):
 
 
 def extract_features(nucleus_mask, cell_mask):
+    """
+    Extracts a set of geometric features from nucleus and cell masks.
+
+    Args:
+        nucleus_mask (np.ndarray): Binary mask for the nucleus.
+        cell_mask (np.ndarray): Binary mask for the cell.
+
+    Returns:
+        dict: Dictionary of extracted features. If features cannot be computed, all values are set to 0.
+    """
     nucleus = compute_region_features(nucleus_mask)
     cell = compute_region_features(cell_mask)
 
@@ -193,7 +219,6 @@ if __name__ == "__main__":
                 rows.append(features)
                 processed += 1
 
-        # Zapis CSV tylko jeśli coś przetworzono
         out_csv = os.path.join(base_dir, f"features_{split}.csv")
         if len(rows) == 0:
             print(f"[WARN] Brak wierszy dla splitu '{split}'. Nie zapisuję CSV.")
