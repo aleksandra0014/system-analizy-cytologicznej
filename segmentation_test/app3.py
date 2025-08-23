@@ -23,7 +23,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 # === KONFIGURACJA ===
-unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208.pth"
+unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models\unet\unet_cell_nucleus_0208.pth"
 yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
 
 image_size = (256, 256)
@@ -124,16 +124,14 @@ def nms_keep_largest_box(boxes, iou_thresh=0.4):
 
     return selected_indices
 
-def predict(model, label_encoder, input_features, scaler):
+def predict(pipe, label_encoder, input_features):
     feature_names = ['N', 'C', 'NCr', 'Np', 'Cp', 'NCp', 'MinA', 'MinAr', 'MaxA', 'MaxAr', 'Nar', 'Car', 'NCar', 'NExt', 'CExt', 'NCExt', 'NSol', 'CSol', 'NCs', 'EqN', 'EqC', 'NCEq', 'OrN', 'OrC', 'NCOr']
     try:
         X_new = pd.DataFrame([[input_features[feat] for feat in feature_names]], columns=feature_names)
     except KeyError as e:
         raise ValueError(f"Brakuje cechy w słowniku: {e}")
 
-    X_new_scaled = scaler.transform(X_new)
-
-    y_pred_encoded = model.predict(X_new_scaled)
+    y_pred_encoded = pipe.predict(X_new)
     predicted_class = label_encoder.inverse_transform(y_pred_encoded)[0]
 
     return predicted_class
@@ -178,9 +176,8 @@ def main():
         crops, nuclei_masks, cell_masks = [], [], []
         predicted_classes = []
         # === KLASYFIKATOR ===
-        model_class = joblib.load(r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\best_model_XGBoost.pkl")
-        label_encoder = joblib.load(r'C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\label_encoder.pkl')
-        scaler = joblib.load(r'C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\scaler.pkl')
+        model_class = joblib.load(r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models\best_model_LightGBM3.pkl")
+        label_encoder = model_class['label_encoder']
 
 
         for (x1, y1, x2, y2) in boxes:
@@ -208,7 +205,7 @@ def main():
             # === PREDYKCJA KLASY ===
             features = extract_features(best_nucleus, mask_cell)
             print(features)
-            predicted_class = predict(model=model_class, label_encoder=label_encoder, input_features=features, scaler=scaler)
+            predicted_class = predict(pipe=model_class["model"], label_encoder=label_encoder, input_features=features)
             predicted_classes.append(predicted_class)
 
             os.remove(tmp_crop_path)

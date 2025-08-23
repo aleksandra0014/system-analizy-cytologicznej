@@ -108,8 +108,15 @@ def grad_cam(architecture, model_path, image_path):
     plt.show()
 
 if __name__ == "__main__":
-    architecture = 'custom_cnn'  # 'resnet18' or 'custom_cnn'
-    model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\custom_cnn\32_0_001_50_0308.pth'
-    image_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\train\NSIL\5b_2.bmp'
-    
-    grad_cam(architecture, model_path, image_path)
+    architecture = 'vgg16'  # 'resnet18' or 'custom_cnn'
+    model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\16_0_0001_50_0608.pth'
+    for subfolder in [
+        r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\HSIL',
+        r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\LSIL',
+        r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\NSIL'
+    ]:
+        for filename in os.listdir(subfolder):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                image_path = os.path.join(subfolder, filename)
+                print(f"Processing: {image_path}")
+            grad_cam(architecture, model_path, image_path)
