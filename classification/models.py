@@ -365,3 +365,18 @@ def run_gridsearch_kfold(
     print(f"\n📄 Results saved to: {output_csv}")
 
 
+
+def predict_label(classifier, crop_np):
+    classifier_transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
+    image_tensor = classifier_transform(crop_np).unsqueeze(0).to(classifier.device)
+    with torch.no_grad():
+        output = classifier.model(image_tensor)
+        probs = torch.softmax(output, dim=1)
+        pred_idx = probs.argmax().item()
+        return classifier.class_names[pred_idx], image_tensor
+    
+

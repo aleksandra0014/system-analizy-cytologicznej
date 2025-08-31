@@ -11,3 +11,4 @@ single_all/
 *.pth
 *.pyc
 sam2/
+.env

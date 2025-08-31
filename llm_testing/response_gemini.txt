@@ -1,0 +1,95 @@
+```json
+{
+  "cells": [
+    {
+      "id": "0",
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL. However, the nucleus-to-cell ratio (NCr=0.0053) is notably low, which typically aligns more with negative squamous cells rather than the mildly to moderately increased N:C ratio expected for LSIL. Nuclear area (N=1234, EqN=39.6) is small relative to cell area (C=230943, EqC=542.2). Nuclear solidity (NSol=0.65) indicates some irregularity.",
+      "confidence": 0.85,
+      "needs_expert_review": true
+    },
+    {
+      "id": "1",
+      "predicted_class": "NSIL",
+      "explanation": "Features are consistent with NSIL. The nucleus-to-cell ratio (NCr=0.0172) is low, and nuclear solidity (NSol=0.962) suggests a relatively smooth nuclear contour. Nuclear size (N=3979, EqN=71.1) is within a benign range relative to cell size (C=230113, EqC=541.2).",
+      "confidence": 1.0,
+      "needs_expert_review": false
+    },
+    {
+      "id": "2",
+      "predicted_class": "LSIL",
+      "explanation": "Feature values for nuclear and cell area (N=0, C=0) are zero, indicating invalid or missing data for analysis.",
+      "confidence": 1.0,
+      "needs_expert_review": true
+    },
+    {
+      "id": "3",
+      "predicted_class": "LSIL",
+      "explanation": "Feature values for nuclear area (N=16, EqN=4.5) are extremely small, resulting in a very low nucleus-to-cell ratio (NCr=0.0001). This suggests the object might be an artifact or an unidentifiable fragment rather than a true cell consistent with LSIL criteria.",
+      "confidence": 0.92,
+      "needs_expert_review": true
+    },
+    {
+      "id": "4",
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL. However, the nucleus-to-cell ratio (NCr=0.0129) is relatively low, which is generally not indicative of the mildly to moderately increased N:C ratio typical for LSIL. Nuclear and cell solidity (NSol=0.967, CSol=0.965) suggest relatively smooth contours.",
+      "confidence": 0.87,
+      "needs_expert_review": true
+    },
+    {
+      "id": "5",
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL. However, the nucleus-to-cell ratio (NCr=0.0018) is exceptionally low, and nuclear area (N=243, EqN=17.5) is very small. These features are highly inconsistent with the nuclear enlargement and increased N:C ratio characteristic of LSIL.",
+      "confidence": 0.82,
+      "needs_expert_review": true
+    },
+    {
+      "id": "6",
+      "predicted_class": "LSIL",
+      "explanation": "Features are consistent with LSIL. The nucleus-to-cell ratio (NCr=0.0264) indicates a mildly increased N:C ratio, and nuclear area (N=2552, EqN=57.0) is suggestive of nuclear enlargement. Nuclear solidity (NSol=1.009) indicates a relatively smooth or highly convex nucleus.",
+      "confidence": 0.87,
+      "needs_expert_review": false
+    },
+    {
+      "id": "7",
+      "predicted_class": "NSIL",
+      "explanation": "Features are consistent with NSIL. The nucleus-to-cell ratio (NCr=0.0148) is low. Nuclear and cell solidity (NSol=1.002, CSol=0.808) are within ranges expected for benign cells.",
+      "confidence": 0.95,
+      "needs_expert_review": false
+    },
+    {
+      "id": "8",
+      "predicted_class": "HSIL",
+      "explanation": "Predicted as HSIL. However, the nucleus-to-cell ratio (NCr=0.0015) is extremely low, which is in direct contradiction to the 'very high N:C ratio' defining characteristic of HSIL. Nuclear area (N=52, EqN=8.1) is also very small. Nuclear solidity (NSol=1.15) suggests high convexity, possibly indicating fragmentation or artifact.",
+      "confidence": 0.91,
+      "needs_expert_review": true
+    },
+    {
+      "id": "9",
+      "predicted_class": "LSIL",
+      "explanation": "Feature values for nuclear and cell area (N=0, C=0) are zero, indicating invalid or missing data for analysis.",
+      "confidence": 0.94,
+      "needs_expert_review": true
+    },
+    {
+      "id": "10",
+      "predicted_class": "LSIL",
+      "explanation": "Feature values for nuclear and cell area (N=0, C=0) are zero, indicating invalid or missing data for analysis.",
+      "confidence": 1.0,
+      "needs_expert_review": true
+    },
+    {
+      "id": "11",
+      "predicted_class": "LSIL",
+      "explanation": "Features are consistent with LSIL. The nucleus-to-cell ratio (NCr=0.1519) is significantly increased, and nuclear solidity (NSol=0.739) indicates some nuclear irregularity, aligning with characteristics of LSIL.",
+      "confidence": 0.92,
+      "needs_expert_review": false
+    }
+  ],
+  "slide_summary": {
+    "overall_class": "LSIL",
+    "explanation": "The slide predominantly shows cells predicted as LSIL (9 cells), with one predicted HSIL and two predicted NSIL cells. However, a significant number of these predictions, including the solitary HSIL and multiple LSIL cells, demonstrate feature discrepancies (e.g., extremely low N:C ratio for predicted high-grade lesions) or invalid feature extraction (N=0, C=0). Specifically, cells 6 and 11 exhibit features more consistent with LSIL. Given the presence of plausible LSIL cells and the highly questionable nature of the HSIL prediction, the overall impression is that of LSIL, but with substantial caveats regarding the reliability of several automated cell classifications requiring human expert review.",
+    "confidence": 0.65
+  }
+}
+```
