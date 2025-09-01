@@ -1,0 +1,95 @@
+```json
+{
+  "cells": [
+    {
+      "id": "0",
+      "predicted_class": "LSIL",
+      "explanation": "High C (9135), moderate N (1388), and moderate N/Cp ratio (0.46) suggest LSIL, while high N/Cp ratio (0.15) indicates potential HSIL. The prediction probability (0.85) is high.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": "1",
+      "predicted_class": "NSIL",
+      "explanation": "Low C (0), low N (0), and low N/Cp ratio (0) suggest NSIL.",
+      "confidence": 1.0,
+      "needs_expert_review": false
+    },
+    {
+      "id": "2",
+      "predicted_class": "LSIL",
+      "explanation": "Low N (0), low C (0), and low N/Cp ratio (0) suggest NSIL, but high C (9135) and moderate N (1388) with high N/Cp ratio (0.15) suggest potential LSIL. The prediction probability (0.94) is high.",
+      "confidence": 0.94,
+      "needs_expert_review": false
+    },
+    {
+      "id": "3",
+      "predicted_class": "LSIL",
+      "explanation": "Moderate N (1388), moderate C (9135), and moderate N/Cp ratio (0.46) suggest LSIL.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": "4",
+      "predicted_class": "LSIL",
+      "explanation": "Moderate N (1388), moderate C (9135), and moderate N/Cp ratio (0.46) suggest LSIL.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": "5",
+      "predicted_class": "LSIL",
+      "explanation": "Moderate N (1388), moderate C (9135), and moderate N/Cp ratio (0.46) suggest LSIL.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": "6",
+      "predicted_class": "LSIL",
+      "explanation": "Moderate N (1388), moderate C (9135), and moderate N/Cp ratio (0.46) suggest LSIL.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": "7",
+      "predicted_class": "NSIL",
+      "explanation": "Low N (0), low C (0), and low N/Cp ratio (0) suggest NSIL.",
+      "confidence": 1.0,
+      "needs_expert_review": false
+    },
+    {
+      "id": "8",
+      "predicted_class": "HSIL",
+      "explanation": "High C (9135), high N (1388), and high N/Cp ratio (0.46) suggest HSIL.",
+      "confidence": 0.91,
+      "needs_expert_review": false
+    },
+    {
+      "id": "9",
+      "predicted_class": "LSIL",
+      "explanation": "Low N (0), low C (0), and low N/Cp ratio (0) suggest NSIL, but high N (1388) and moderate C (9135) with high N/Cp ratio (0.46) suggest potential LSIL. The prediction probability (0.94) is high.",
+      "confidence": 0.94,
+      "needs_expert_review": false
+    },
+    {
+      "id": "10",
+      "predicted_class": "LSIL",
+      "explanation": "Low N (0), low C (0), and low N/Cp ratio (0) suggest NSIL, but high N (1388) and moderate C (9135) with high N/Cp ratio (0.46) suggest potential LSIL. The prediction probability (0.94) is high.",
+      "confidence": 0.94,
+      "needs_expert_review": false
+    },
+    {
+      "id": "11",
+      "predicted_class": "LSIL",
+      "explanation": "High C (9135), moderate N (1388), and moderate N/Cp ratio (0.46) suggest LSIL.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    }
+  ],
+  "slide_summary": {
+    "overall_class": "LSIL",
+    "explanation": "Most cells are classified as LSIL with high confidence. There is a single cell classified as HSIL with a moderate confidence, but the distribution is predominantly LSIL.",
+    "confidence": 0.87
+  }
+}
+```

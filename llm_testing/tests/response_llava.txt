@@ -1,0 +1,95 @@
+ ```json
+{
+  "cells": [
+    {
+      "id": 0,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.32,
+      "needs_expert_review": true
+    },
+    {
+      "id": 1,
+      "predicted_class": "NSIL",
+      "explanation": "Np and Cp values suggest a negative for Squamous Intraepithelial Lesion (SIL), indicating that the cell is normal.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": 2,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.0,
+      "needs_expert_review": true
+    },
+    {
+      "id": 3,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.32,
+      "needs_expert_review": true
+    },
+    {
+      "id": 4,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.07,
+      "needs_expert_review": true
+    },
+    {
+      "id": 5,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.13,
+      "needs_expert_review": true
+    },
+    {
+      "id": 6,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.08,
+      "needs_expert_review": true
+    },
+    {
+      "id": 7,
+      "predicted_class": "NSIL",
+      "explanation": "Np and Cp values suggest a negative for Squamous Intraepithelial Lesion (SIL), indicating that the cell is normal.",
+      "confidence": 0.85,
+      "needs_expert_review": false
+    },
+    {
+      "id": 8,
+      "predicted_class": "HSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), indicating that the cell is high-grade.",
+      "confidence": 0.91,
+      "needs_expert_review": false
+    },
+    {
+      "id": 9,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.06,
+      "needs_expert_review": true
+    },
+    {
+      "id": 10,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.0,
+      "needs_expert_review": true
+    },
+    {
+      "id": 11,
+      "predicted_class": "LSIL",
+      "explanation": "Np and Cp values suggest a positive for Squamous Intraepithelial Lesion (SIL), but the low N value indicates that it is not a high-grade lesion.",
+      "confidence": 0.06,
+      "needs_expert_review": true
+    }
+  ],
+  "slide_summary": {
+    "overall_class": "LSIL",
+    "explanation": "The majority of the cells are negative for Squamous Intraepithelial Lesion (SIL), indicating that they are normal. However, there are a few cells with low N values and positive Np/Cp values, which suggest the presence of low-grade SIL. The overall confidence is moderate.",
+    "confidence": 0.32
+  }
+}
+``` 

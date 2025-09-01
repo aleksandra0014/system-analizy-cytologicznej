@@ -47,3 +47,5 @@ Output format (JSON only; no extra commentary):
 Constraints:
 - Return valid JSON only (no prose outside JSON).
 - Be specific but concise; avoid speculative language beyond the provided data.
+
+Remember to add slide summary with overall classification and explanation and confidence!

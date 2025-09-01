@@ -1,0 +1,95 @@
+```json
+{
+  "cells": [
+    {
+      "id": 0,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL despite a very low nucleus-to-cell ratio (NCr=0.0053) and relatively small nuclear size (EqN=39.6), which are not typical for LSIL (requires mildly to moderately increased N:C ratio and nuclear enlargement). Nuclear solidity (NSol=0.65) suggests some irregularity.",
+      "confidence": 0.85,
+      "needs_expert_review": true
+    },
+    {
+      "id": 1,
+      "predicted_class": "NSIL",
+      "explanation": "Features consistent with NSIL, showing a low nucleus-to-cell ratio (NCr=0.017) and high nuclear solidity (NSol=0.96), indicating a benign nucleus with regular contour.",
+      "confidence": 1.0,
+      "needs_expert_review": false
+    },
+    {
+      "id": 2,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL, but all nuclear and cell features (N, C, NCr) are zero, indicating a failure in segmentation or an object that is not a cell.",
+      "confidence": 1.0,
+      "needs_expert_review": true
+    },
+    {
+      "id": 3,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL despite an extremely low nucleus-to-cell ratio (NCr=0.0001) and minuscule nuclear size (EqN=4.5), which are highly inconsistent with LSIL criteria for nuclear enlargement.",
+      "confidence": 0.92,
+      "needs_expert_review": true
+    },
+    {
+      "id": 4,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL, but exhibits a relatively low nucleus-to-cell ratio (NCr=0.0129) and high nuclear solidity (NSol=0.967), suggesting a regular nuclear contour, which is not typical for LSIL.",
+      "confidence": 0.87,
+      "needs_expert_review": true
+    },
+    {
+      "id": 5,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL, but presents an extremely low nucleus-to-cell ratio (NCr=0.0018) and very small nuclear size (EqN=17.5), inconsistent with LSIL nuclear enlargement criteria.",
+      "confidence": 0.82,
+      "needs_expert_review": true
+    },
+    {
+      "id": 6,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL, but shows a relatively low nucleus-to-cell ratio (NCr=0.0264) and very high nuclear solidity (NSol=1.009), suggesting a highly regular nuclear contour, inconsistent with LSIL.",
+      "confidence": 0.87,
+      "needs_expert_review": true
+    },
+    {
+      "id": 7,
+      "predicted_class": "NSIL",
+      "explanation": "Features consistent with NSIL, demonstrating a low nucleus-to-cell ratio (NCr=0.0148) and very high nuclear solidity (NSol=1.002), indicating a benign nucleus with regular contour.",
+      "confidence": 0.95,
+      "needs_expert_review": false
+    },
+    {
+      "id": 8,
+      "predicted_class": "HSIL",
+      "explanation": "Predicted as HSIL with high confidence, but nuclear area (N=52) and equivalent diameter (EqN=8.1) are minuscule, and nucleus-to-cell ratio (NCr=0.0015) is extremely low. These features directly contradict the criteria for HSIL, which requires marked nuclear enlargement and a very high N:C ratio.",
+      "confidence": 0.91,
+      "needs_expert_review": true
+    },
+    {
+      "id": 9,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL, but all nuclear and cell features (N, C, NCr) are zero, indicating a failure in segmentation or an object that is not a cell.",
+      "confidence": 0.94,
+      "needs_expert_review": true
+    },
+    {
+      "id": 10,
+      "predicted_class": "LSIL",
+      "explanation": "Predicted as LSIL, but all nuclear and cell features (N, C, NCr) are zero, indicating a failure in segmentation or an object that is not a cell.",
+      "confidence": 1.0,
+      "needs_expert_review": true
+    },
+    {
+      "id": 11,
+      "predicted_class": "LSIL",
+      "explanation": "Features align with LSIL, showing an increased nucleus-to-cell ratio (NCr=0.1519) and lower nuclear solidity (NSol=0.739), suggesting nuclear enlargement and irregular contour.",
+      "confidence": 0.92,
+      "needs_expert_review": false
+    }
+  ],
+  "slide_summary": {
+    "overall_class": "HSIL",
+    "explanation": "The automated system identified one cell classified as HSIL (Cell 8) and multiple cells classified as LSIL. However, the HSIL prediction for Cell 8 is highly inconsistent with its minuscule nuclear size and extremely low nucleus-to-cell ratio, which directly contradict HSIL criteria. A significant number of other LSIL predictions are also problematic due to missing feature data (Cells 2, 9, 10) or features inconsistent with LSIL (Cells 0, 3, 4, 5, 6). Only one LSIL cell (Cell 11) and two NSIL cells (Cells 1, 7) show features consistent with their classifications. Given the critical inconsistencies and potential misclassifications across multiple significant findings, the overall slide interpretation is highly uncertain and mandates comprehensive human expert review.",
+    "confidence": 0.3
+  }
+}
+```

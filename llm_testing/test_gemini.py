@@ -102,8 +102,8 @@ def analyze_with_gemini(
                 ]},
             ],
             config=genai.types.GenerateContentConfig(
-                temperature=0.4,
-                top_p=0.95,
+                temperature=0.6,
+                top_p=0.9,
             ),
         )
         return response.text
@@ -171,7 +171,7 @@ def analyze_with_ollama(
         ],
         "stream": stream,
         "options": {
-            "temperature": 0.6, 
+            "temperature": 0.7, 
             "top_p": 0.9
         }
     }

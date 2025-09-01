@@ -25,13 +25,16 @@ from segmentation.models import UNet, preprocess_image, predict_masks
 from segmentation.features import extract_features
 from classification.models import CytologyClassifier, predict_label
 
-from helpers import * 
+from llm_testing.helpers import * 
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches 
 warnings.filterwarnings("ignore")
 
-from test_gemini import analyze_with_gemini, analyze_with_ollama
+from llm_testing.test_gemini import analyze_with_gemini, analyze_with_ollama
+
+from dotenv import load_dotenv
+load_dotenv()
 
 unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\unet\unet_cell_nucleus_0208.pth"
 yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
@@ -41,7 +44,7 @@ rf_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\mode
 CLASS_NAMES = ['HSIL', 'LSIL', 'NSIL']
 vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth'
 ARCHITECTURE = 'vgg16'
-API_KEY = os.getenv("api_key", '')
+API_KEY = os.getenv("API_KEY", os.getenv("api_key", ''))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 unet = UNet(in_channels=3, out_channels=2)
@@ -171,16 +174,16 @@ def get_info(image_path, show_image=True):
 
 
 if __name__ == "__main__":
-    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 40\18b.bmp"
+    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 10\35a.bmp"
     features_list, predict_fused, probs, df_preds, bbox_image_path = get_info(image_path, show_image=True)
     print(df_preds)
     print(probs)
     start = datetime.datetime.now()
-    response = analyze_with_ollama(bbox_image_path, features_list, predict_fused, probs, model='llava:7b')
-                                   #, model='qwen2.5vl:7b', stream=True)
-    print(response)
-    with open('response_llava.txt', 'w') as f:
-        f.write(response)    
+    response = analyze_with_gemini(bbox_image_path, features_list, predict_fused, probs,
+                                   api_key=API_KEY)
+                                   # model='llava:7b')
+                                    # model='qwen2.5vl:7b', stream=True)
+    print(response)  
     end = datetime.datetime.now()
     time = end - start
     print(time)
