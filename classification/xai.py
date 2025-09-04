@@ -2,7 +2,7 @@ import os
 import torch
 from torchvision import transforms
 from PIL import Image
-from models import CytologyClassifier
+from classification.models import CytologyClassifier
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2

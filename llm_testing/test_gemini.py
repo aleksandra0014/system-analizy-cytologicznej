@@ -2,6 +2,7 @@ import os
 import json
 import mimetypes
 from string import Template
+from pathlib import Path
 import numpy as np
 from google import genai
 
@@ -41,31 +42,23 @@ def render_prompt(template_text: str, *, features, predictions, probs) -> str:
         PROBS_JSON=json.dumps(probs_clean,          ensure_ascii=False, indent=2),
     )
 
-def analyze_with_gemini(
-    image_path: str,
-    features,
-    predictions,
-    probs,
-    api_key: str,
-    system_path: str = "llm_testing\system.txt",
-    prompt_template_path: str = "llm_testing\prompt.txt",
-    model: str = "gemini-2.5-flash",
-):
-    """
-    Build an instruction + data prompt for Gemini (multimodal) using external text files.
-    - system_path: path to system description text file
-    - prompt_template_path: path to main prompt template (with $FEATURES_JSON etc.)
-    Returns: model text (expected JSON).
-    """
-    if not os.path.exists(system_path):
+BASE_DIR = Path(__file__).resolve().parent  
+SYSTEM_PATH = BASE_DIR / "system.txt"
+PROMPT_TEMPLATE_PATH = BASE_DIR / "prompt.txt"
+
+def analyze_with_gemini(image_path, features, predictions, probs, api_key, model="gemini-2.5-flash"):
+    system_path = SYSTEM_PATH
+    prompt_template_path = PROMPT_TEMPLATE_PATH
+
+    if not system_path.exists():
         raise FileNotFoundError(f"System file not found: {system_path}")
-    if not os.path.exists(prompt_template_path):
+    if not prompt_template_path.exists():
         raise FileNotFoundError(f"Prompt template not found: {prompt_template_path}")
-    if not os.path.exists(image_path):
+    if not Path(image_path).exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
-    system_text   = load_text(system_path)
-    template_text = load_text(prompt_template_path)
+    system_text = system_path.read_text(encoding="utf-8")
+    template_text = prompt_template_path.read_text(encoding="utf-8")
     prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs)
 
 
@@ -119,8 +112,6 @@ def analyze_with_ollama(
     features,
     predictions,
     probs,
-    system_path: str = r"llm_testing\system.txt",
-    prompt_template_path: str = r"llm_testing\prompt.txt",
     model: str = "llava:latest",
     *,
     stream: bool = False, 
@@ -133,16 +124,17 @@ def analyze_with_ollama(
     - prompt_template_path: plik z szablonem promptu
     Zwraca: treść odpowiedzi modelu (str).
     """
-
-    if not os.path.exists(system_path):
+    system_path = SYSTEM_PATH
+    prompt_template_path = PROMPT_TEMPLATE_PATH
+    if not system_path.exists():
         raise FileNotFoundError(f"System file not found: {system_path}")
-    if not os.path.exists(prompt_template_path):
+    if not prompt_template_path.exists():
         raise FileNotFoundError(f"Prompt template not found: {prompt_template_path}")
-    if not os.path.exists(image_path):
+    if not Path(image_path).exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
-    system_text   = load_text(system_path)
-    template_text = load_text(prompt_template_path)
+    system_text = system_path.read_text(encoding="utf-8")
+    template_text = prompt_template_path.read_text(encoding="utf-8")
     prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs)
 
     mime = guess_mime(image_path)

@@ -5,7 +5,6 @@ from ultralytics import YOLO
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
-
 import torch
 import torch.nn.functional as F
 
@@ -18,20 +17,17 @@ from torchvision import transforms
 
 import tempfile
 import os
-import sys
 import joblib
 
 from segmentation.models import UNet, preprocess_image, predict_masks
 from segmentation.features import extract_features
 from classification.models import CytologyClassifier, predict_label
 
-from llm_testing.helpers import * 
+from llm_testing.helpers import *  # nms_keep_largest_box, predict_gbm, predict_fused_func, predict_vgg_probs, predict_gbm_probs
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches 
+import matplotlib.patches as patches
 warnings.filterwarnings("ignore")
-
-from llm_testing.test_gemini import analyze_with_gemini, analyze_with_ollama
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -67,10 +63,6 @@ vgg_clf.model.eval().to(device)
 def get_info(image_path, show_image=True):
     image = Image.open(image_path).convert("RGB")
     image_np = np.array(image)
-    # image_np = apply_clahe(image_np, clip_limit=2.0, tile_grid_size=(8, 8), use_median=True, median_kernel=3)
-
-    image = Image.open(image_path).convert("RGB")
-    image_np = np.array(image)
 
     results = yolo(image_path, conf=0.25, iou=0.5, agnostic_nms=False)
     boxes_tensor = results[0].boxes.xyxy.cpu()
@@ -82,32 +74,41 @@ def get_info(image_path, show_image=True):
     boxes_tensor = boxes_tensor[keep_ids]
     classes_tensor = classes_tensor[keep_ids]
 
-    cell_mask = (classes_tensor == 0) | (classes_tensor == 1) | (classes_tensor == 2)  
+    cell_mask = (classes_tensor == 0) | (classes_tensor == 1) | (classes_tensor == 2)
     boxes = boxes_tensor[cell_mask].numpy().astype(int)
 
     predict_classes_vgg = {}
     predict_classes_gbm = {}
     predict_fused = {}
     features_list = {}
-    probs = {} 
+    probs = {}
+    crop_paths = {}  # <--- NEW
 
     bbox_image_path = None
     if show_image:
-        fig, ax = plt.subplots(figsize=(7.68, 7.68), dpi=100)  # 7.68 cala * 100 dpi = 768 px
+        fig, ax = plt.subplots(figsize=(7.68, 5.12), dpi=100)
         ax.imshow(image_np)
         for idx, (x1, y1, x2, y2) in enumerate(boxes):
-            rect = patches.Rectangle((x1, y1), x2-x1, y2-y1, linewidth=2, edgecolor='lime', facecolor='none')
+            rect = patches.Rectangle(
+                (x1, y1), x2 - x1, y2 - y1,
+                linewidth=2,
+                edgecolor='#3a5ba0', 
+                facecolor='none'
+            )
             ax.add_patch(rect)
-            ax.text(x1, y1-5, str(idx), color='red', fontsize=12, weight='bold', bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
+            ax.text(
+                x1, max(0, y1 - 5), str(idx),
+                color='#f7c873',  
+                fontsize=12, weight='bold',
+                bbox=dict(facecolor='white', alpha=0.5, edgecolor='none')
+            )
         ax.set_axis_off()
-        # Zapisz obraz z bboxami do pliku tymczasowego
         with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_bbox:
             fig.savefig(tmp_bbox.name, bbox_inches='tight', pad_inches=0, dpi=100)
             bbox_image_path = tmp_bbox.name
         plt.close(fig)
-        # Skaluj do dokładnie 768x768 px (na wypadek, gdyby bbox_inches zmienił rozmiar)
         im = Image.open(bbox_image_path)
-        im = im.resize((768, 768), Image.LANCZOS)
+        im = im.resize((768, 512), Image.LANCZOS)
         im.save(bbox_image_path)
 
     for idx, (x1, y1, x2, y2) in enumerate(boxes):
@@ -121,26 +122,24 @@ def get_info(image_path, show_image=True):
                 yolo_class = int(classes_tensor[i].item())
                 break
 
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_crop:
+            cv2.imwrite(tmp_crop.name, cv2.cvtColor(crop, cv2.COLOR_RGB2BGR))
+            tmp_path = tmp_crop.name
+            crop_paths[idx] = tmp_path
+
         if yolo_class == 1:
             predict_classes_vgg[idx] = 'HSIL/LSIL_group'
             continue
 
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_crop:
-            cv2.imwrite(tmp_crop.name, cv2.cvtColor(crop, cv2.COLOR_RGB2BGR))
-            tmp_path = tmp_crop.name
-
         _, tensor = preprocess_image(tmp_path)
-        masks = predict_masks(unet, tensor, device)
+        masks = predict_masks(unet, tensor, device, threshold_nuclei=0.2, threshold_cell=0.5)
         mask_nucleus = cv2.resize(masks[1], (crop.shape[1], crop.shape[0]))
         best_nucleus = select_best_nucleus(mask_nucleus, crop.shape[:2])
         mask_cell = cv2.resize(masks[0], (crop.shape[1], crop.shape[0])) * 255
 
-        # if np.count_nonzero(best_nucleus) == 0:
-        #     print(idx)
-        #     continue
-
         features = extract_features(best_nucleus, mask_cell)
         features_list[idx] = features
+
         predict_class = predict_gbm(gbm_model['model'], label_encoder, features)
         predict_classes_gbm[idx] = predict_class
 
@@ -152,12 +151,13 @@ def get_info(image_path, show_image=True):
 
         probs_vgg = predict_vgg_probs(vgg_clf, tmp_path, device)
         probs_xgb = predict_gbm_probs(gbm_model['model'], label_encoder, features)
-        probs_fused = predict_fused_func(rf_model['model'], rf_encoder, vgg_clf, unet, device, tmp_path, probs_output=True)
+        probs_fused = predict_fused_func(
+            rf_model['model'], rf_encoder, vgg_clf, unet, device, tmp_path, probs_output=True
+        )
         probs[idx] = {
             'fused': probs_fused
         }
-        
-    
+
     all_indices = set(predict_classes_vgg.keys()) | set(predict_classes_gbm.keys()) | set(predict_fused.keys())
     rows = []
     for idx in sorted(all_indices):
@@ -170,7 +170,8 @@ def get_info(image_path, show_image=True):
 
     df_preds = pd.DataFrame(rows)
 
-    return features_list, predict_fused, probs, df_preds, bbox_image_path
+    return features_list, predict_fused, probs, df_preds, bbox_image_path, crop_paths
+
 
 
 if __name__ == "__main__":

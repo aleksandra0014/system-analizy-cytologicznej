@@ -12,3 +12,4 @@ single_all/
 *.pyc
 sam2/
 .env
+app/backend/static/
