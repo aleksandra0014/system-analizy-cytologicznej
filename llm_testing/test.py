@@ -82,7 +82,7 @@ def get_info(image_path, show_image=True):
     predict_fused = {}
     features_list = {}
     probs = {}
-    crop_paths = {}  # <--- NEW
+    crop_paths = {}
 
     bbox_image_path = None
     if show_image:
@@ -92,13 +92,13 @@ def get_info(image_path, show_image=True):
             rect = patches.Rectangle(
                 (x1, y1), x2 - x1, y2 - y1,
                 linewidth=2,
-                edgecolor='#3a5ba0', 
+                edgecolor= '#f7c873',
                 facecolor='none'
             )
             ax.add_patch(rect)
             ax.text(
                 x1, max(0, y1 - 5), str(idx),
-                color='#f7c873',  
+                color='#3a5ba0',  
                 fontsize=12, weight='bold',
                 bbox=dict(facecolor='white', alpha=0.5, edgecolor='none')
             )
@@ -129,6 +129,7 @@ def get_info(image_path, show_image=True):
 
         if yolo_class == 1:
             predict_classes_vgg[idx] = 'HSIL/LSIL_group'
+            predict_fused[idx] = 'HSIL/LSIL_group'
             continue
 
         _, tensor = preprocess_image(tmp_path)
@@ -138,6 +139,15 @@ def get_info(image_path, show_image=True):
         mask_cell = cv2.resize(masks[0], (crop.shape[1], crop.shape[0])) * 255
 
         features = extract_features(best_nucleus, mask_cell)
+        
+        if features is None or len(features) == 0:
+            print(f"Pominięto komórkę {idx} - brak features")
+            continue
+            
+        if all(value == 0 for value in features.values()):
+            print(f"Pominięto komórkę {idx} - wszystkie features równe 0")
+            continue
+            
         features_list[idx] = features
 
         predict_class = predict_gbm(gbm_model['model'], label_encoder, features)
@@ -172,19 +182,18 @@ def get_info(image_path, show_image=True):
 
     return features_list, predict_fused, probs, df_preds, bbox_image_path, crop_paths
 
-
-
 if __name__ == "__main__":
-    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 10\35a.bmp"
-    features_list, predict_fused, probs, df_preds, bbox_image_path = get_info(image_path, show_image=True)
-    print(df_preds)
+    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\NSIL\pow 40\44d.bmp"
+    features_list, predict_fused, probs, df_preds, bbox_image_path, crop_paths = get_info(image_path, show_image=True)
+    print(features_list)
+    print(predict_fused)
     print(probs)
     start = datetime.datetime.now()
-    response = analyze_with_gemini(bbox_image_path, features_list, predict_fused, probs,
-                                   api_key=API_KEY)
-                                   # model='llava:7b')
-                                    # model='qwen2.5vl:7b', stream=True)
-    print(response)  
+    # response = analyze_with_gemini(bbox_image_path, features_list, predict_fused, probs,
+    #                                api_key=API_KEY)
+    #                                # model='llava:7b')
+    #                                 # model='qwen2.5vl:7b', stream=True)
+    # print(response)  
     end = datetime.datetime.now()
     time = end - start
     print(time)
