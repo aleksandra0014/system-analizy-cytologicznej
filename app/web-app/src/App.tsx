@@ -3,7 +3,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import FileUpload from "./components/FileUpload";
+
+import { User, Home as HomeIcon, LogOut, Upload, Eye, Brain, Zap, Activity } from "lucide-react";
+
+// Placeholder for FileUpload component since it's imported
+function FileUpload({ selectedFile, onFileSelect }: { selectedFile: File | null; onFileSelect: (file: File | null) => void }) {
+  return (
+    <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 text-center hover:border-blue-300 transition-colors">
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        id="file-upload"
+        onChange={(e) => onFileSelect(e.target.files?.[0] || null)}
+      />
+      <label htmlFor="file-upload" className="cursor-pointer">
+        <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+        <p className="text-sm text-gray-600">
+          {selectedFile ? selectedFile.name : "Click to upload slide image"}
+        </p>
+      </label>
+    </div>
+  );
+}
 
 /* ====================== TYPES ====================== */
 type Results = {
@@ -49,6 +71,13 @@ const CLASS_NAME_MAP: Record<string, string> = {
   LSIL: "LSIL",
   NSIL: "NSIL",
 };
+
+const CLASS_COLORS: Record<string, string> = {
+  HSIL: "bg-red-100 text-red-800 border-red-200",
+  LSIL: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  NSIL: "bg-green-100 text-green-800 border-green-200",
+};
+
 const mapClass = (v: unknown) => CLASS_NAME_MAP[String(v)] ?? String(v);
 const api = (url: string, init?: RequestInit) => fetch(url, { ...init, credentials: "include" });
 
@@ -57,31 +86,44 @@ const api = (url: string, init?: RequestInit) => fetch(url, { ...init, credentia
 // --- TOP BAR ---
 function TopBar({ user, goHome, doLogout }: { user: User | null; goHome: () => void; doLogout: () => void }) {
   return (
-    <div className="w-full sticky top-0 z-40 backdrop-blur bg-white/50 border-b border-white/20">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <button
+    <div className="w-full sticky top-0 z-40 backdrop-blur-lg bg-white/80 border-b border-blue-100 shadow-sm">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <Button
           onClick={goHome}
-          className="text-sm px-3 py-1.5 rounded-full bg-white/60 hover:bg-white shadow transition"
-          title="Back to Home"
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-2 hover:bg-blue-50"
         >
+          <HomeIcon className="w-4 h-4" />
           Home
-        </button>
-        <h1 className="text-xl md:text-2xl font-bold text-blue-900 tracking-tight">LBC Slides Analysis</h1>
+        </Button>
+        <div className="text-center">
+          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            LBC Slides Analysis
+          </h1>
+          <p className="text-sm text-gray-500 hidden md:block">Advanced Cervical Cell Classification</p>
+        </div>
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <span className="text-sm text-gray-700">
-                {user.imie} {user.nazwisko} ({user.email})
-              </span>
-              <button
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-full">
+                <User className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-700">
+                  {user.imie} {user.nazwisko}
+                </span>
+              </div>
+              <Button
                 onClick={doLogout}
-                className="text-sm px-3 py-1.5 rounded-full bg-white/60 hover:bg-white shadow transition"
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600"
               >
+                <LogOut className="w-4 h-4" />
                 Logout
-              </button>
+              </Button>
             </>
           ) : (
-            <div className="opacity-0">.</div>
+            <div className="w-20"></div>
           )}
         </div>
       </div>
@@ -107,27 +149,33 @@ function LoginView({
 }) {
   return (
     <div className="max-w-md w-full mx-auto px-4">
-      <Card className="backdrop-blur bg-white/70 border-white/50 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-sky-900">Log in</CardTitle>
+      <Card className="backdrop-blur-lg bg-white/90 border-blue-100 shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl text-gray-800">Welcome Back</CardTitle>
+          <p className="text-gray-600">Sign in to continue to LBC Analysis</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input
             type="email"
-            placeholder="Email"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="h-12"
           />
           <Input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="h-12"
           />
-          <Button onClick={doLogin} className="w-full">
-            Login
+          <Button onClick={doLogin} className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+            Sign In
           </Button>
-          {authErr && <p className="text-sm text-red-600">{authErr}</p>}
+          {authErr && <p className="text-sm text-red-600 text-center">{authErr}</p>}
         </CardContent>
       </Card>
     </div>
@@ -137,33 +185,59 @@ function LoginView({
 // --- HOME ---
 function Home({ onGoAdd, onGoOld }: { onGoAdd: () => void; onGoOld: () => void }) {
   return (
-    <div className="max-w-4xl w-full mx-auto px-4">
-      <div className="text-center mb-10">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-blue-900 drop-shadow-sm">Welcome</h2>
-        <p className="mt-3 text-gray-600">Choose what you want to do – add a new slide or view saved data.</p>
+    <div className="max-w-5xl w-full mx-auto px-4">
+      <div className="text-center mb-12">
+        <h2 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+          Welcome
+        </h2>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Advanced AI-powered cervical cell analysis and classification system
+        </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-8">
         <button
           onClick={onGoOld}
-          className="group rounded-2xl p-6 bg-white/70 hover:bg-white shadow-lg hover:shadow-xl border border-white/40 transition text-left"
+          className="group rounded-3xl p-8 bg-gradient-to-br from-white/90 to-blue-50/50 hover:from-white hover:to-blue-50 shadow-lg hover:shadow-xl border border-blue-100 transition-all duration-300 text-left transform hover:-translate-y-1"
         >
-          <div className="text-3xl mb-3">📚</div>
-          <div className="text-2xl font-semibold text-blue-900 mb-1">Show old data</div>
-          <p className="text-gray-600">First, select the patient, then the slide. View results (Grad-CAM, LIME).</p>
-          <div className="mt-4 text-blue-700 font-medium group-hover:translate-x-1 transition">Open →</div>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <Eye className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-800 mb-1">View Results</div>
+              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800 border border-blue-200">Historical Data</span>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Browse previously analyzed slides. Select patients and view detailed results including 
+            Grad-CAM visualizations and LIME explanations.
+          </p>
+          <div className="flex items-center text-blue-700 font-semibold group-hover:translate-x-2 transition-transform">
+            Explore Archive <span className="ml-2">→</span>
+          </div>
         </button>
 
         <button
           onClick={onGoAdd}
-          className="group rounded-2xl p-6 bg-white/70 hover:bg-white shadow-lg hover:shadow-xl border border-white/40 transition text-left"
+          className="group rounded-3xl p-8 bg-gradient-to-br from-white/90 to-green-50/50 hover:from-white hover:to-green-50 shadow-lg hover:shadow-xl border border-green-100 transition-all duration-300 text-left transform hover:-translate-y-1"
         >
-          <div className="text-3xl mb-3">➕</div>
-          <div className="text-2xl font-semibold text-blue-900 mb-1">Add new slide</div>
-          <p className="text-gray-600">
-            Upload image, provide <span className="font-medium">Patient ID</span> and run the analysis.
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+              <Brain className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-800 mb-1">New Analysis</div>
+              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-green-100 text-green-800 border border-green-200">AI Processing</span>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Upload a new cervical slide image for AI-powered cell classification and analysis.
+            Get instant results with detailed explanations.
           </p>
-          <div className="mt-4 text-blue-700 font-medium group-hover:translate-x-1 transition">Add →</div>
+          <div className="flex items-center text-green-700 font-semibold group-hover:translate-x-2 transition-transform">
+            Start Analysis <span className="ml-2">→</span>
+          </div>
         </button>
       </div>
     </div>
@@ -191,28 +265,61 @@ function AddForm({
   onCancel: () => void;
 }) {
   return (
-    <div className="max-w-3xl w-full mx-auto px-4">
-      <Card className="backdrop-blur bg-white/70 border-white/50 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-sky-900">Add new slide</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Input placeholder="Patient ID" value={patientId} onChange={(e) => setPatientId(e.target.value)} />
-          <FileUpload selectedFile={selectedFile} onFileSelect={(file) => setSelectedFile(file)} />
-          <div className="flex gap-2">
-            <Button disabled={!patientId || !selectedFile || loading} onClick={() => selectedFile && onProcess(selectedFile)}>
-              {loading ? "Processing..." : "Process"}
-            </Button>
-            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+    <div className="max-w-4xl w-full mx-auto px-4">
+      <Card className="backdrop-blur-lg bg-white/90 border-blue-100 shadow-xl">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Brain className="w-8 h-8 text-white" />
           </div>
-          {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+          <CardTitle className="text-2xl text-gray-800">New Slide Analysis</CardTitle>
+          <p className="text-gray-600">Upload and analyze cervical cell slides with AI</p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Patient ID</label>
+            <Input 
+              placeholder="Enter patient identifier" 
+              value={patientId} 
+              onChange={(e) => setPatientId(e.target.value)}
+              className="h-12"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Slide Image</label>
+            <FileUpload selectedFile={selectedFile} onFileSelect={(file) => setSelectedFile(file)} />
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <Button 
+              disabled={!patientId || !selectedFile || loading} 
+              onClick={() => selectedFile && onProcess(selectedFile)}
+              className="flex-1 h-12 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 mr-2" />
+                  Start Analysis
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={onCancel} className="h-12">
+              Cancel
+            </Button>
+          </div>
+          {errorMsg && <p className="text-sm text-red-600 text-center">{errorMsg}</p>}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-// --- OLD FORM (bez tabeli pod selectem) ---
+// --- OLD FORM ---
 function OldForm({
   patients,
   selectedPatient,
@@ -239,62 +346,92 @@ function OldForm({
   onBack: () => void;
 }) {
   return (
-    <div className="max-w-3xl w-full mx-auto px-4">
-      <Card className="backdrop-blur bg-white/70 border-white/50 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-sky-900">Show old data</CardTitle>
+    <div className="max-w-4xl w-full mx-auto px-4">
+      <Card className="backdrop-blur-lg bg-white/90 border-blue-100 shadow-xl">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Eye className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl text-gray-800">View Previous Results</CardTitle>
+          <p className="text-gray-600">Browse and analyze historical slide data</p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Patient */}
-          <select
-            className="w-full border rounded px-3 py-2 bg-white"
-            value={selectedPatient}
-            onChange={(e) => {
-              const v = e.target.value;
-              setSelectedPatient(v);
-              onRefreshSlides(v);
-            }}
-          >
-            <option value="">Select patient</option>
-            {patients.map((p) => (
-              <option key={p.pacjent_uid} value={p.pacjent_uid}>{p.pacjent_uid}</option>
-            ))}
-          </select>
-
-          {/* Slide (no table) */}
-          <div className="grid md:grid-cols-[1fr_auto] gap-2">
+        <CardContent className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Patient</label>
             <select
-              className="w-full border rounded px-3 py-2 bg-white"
-              value={selectedSlide}
-              onChange={(e) => setSelectedSlide(e.target.value)}
-              disabled={!selectedPatient || slides.length === 0}
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={selectedPatient}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSelectedPatient(v);
+                onRefreshSlides(v);
+              }}
             >
-              <option value="">
-                {selectedPatient ? (slides.length ? "Select slide" : "No slides") : "Select patient first"}
-              </option>
-              {slides.map((s) => (
-                <option key={s.slajd_uid} value={s.slajd_uid}>
-                  {s.slajd_uid}{s.overall_class ? ` • ${mapClass(s.overall_class)}` : ""}{s.status ? ` • ${s.status}` : ""}
-                </option>
+              <option value="">Choose a patient...</option>
+              {patients.map((p) => (
+                <option key={p.pacjent_uid} value={p.pacjent_uid}>{p.pacjent_uid}</option>
               ))}
             </select>
-
-            <Button variant="outline" disabled={!selectedSlide || loading} onClick={onShowSlide}>Show</Button>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={onBack}>Back</Button>
-            <Button onClick={() => onRefreshSlides(selectedPatient)} disabled={!selectedPatient}>Refresh slides</Button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Slide</label>
+            <div className="flex gap-3">
+              <select
+                className="flex-1 border border-gray-200 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={selectedSlide}
+                onChange={(e) => setSelectedSlide(e.target.value)}
+                disabled={!selectedPatient || slides.length === 0}
+              >
+                <option value="">
+                  {selectedPatient ? (slides.length ? "Choose a slide..." : "No slides available") : "Select patient first"}
+                </option>
+                {slides.map((s) => {
+                  const classLabel = s.overall_class ? mapClass(s.overall_class) : null;
+                  return (
+                    <option key={s.slajd_uid} value={s.slajd_uid}>
+                      {s.slajd_uid}
+                      {classLabel && ` • ${classLabel}`}
+                      {s.status && ` • ${s.status}`}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <Button 
+                variant="default" 
+                disabled={!selectedSlide || loading} 
+                onClick={onShowSlide}
+                className="h-[52px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                View Results
+              </Button>
+            </div>
           </div>
 
-          {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+          <div className="flex gap-3 pt-4">
+            <Button onClick={onBack} variant="outline" className="h-12">
+              Back to Home
+            </Button>
+            <Button 
+              onClick={() => onRefreshSlides(selectedPatient)} 
+              disabled={!selectedPatient}
+              variant="ghost"
+              className="h-12"
+            >
+              Refresh Slides
+            </Button>
+          </div>
+
+          {errorMsg && <p className="text-sm text-red-600 text-center">{errorMsg}</p>}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-// --- ADD INFO CARD (krótka) ---
+// --- ADD INFO CARD ---
 function AddInfoCard({
   value,
   onChange,
@@ -309,45 +446,37 @@ function AddInfoCard({
   message: string | null;
 }) {
   return (
-    <Card className="overflow-hidden backdrop-blur bg-white/70 border-white/50 shadow">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sky-900">Add info</CardTitle>
+    <Card className="backdrop-blur-lg bg-white/95 border-blue-100 shadow-md">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+          <User className="w-5 h-5" />
+          Additional Notes
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <textarea
-          rows={2}
-          className="w-full border rounded p-2 bg-white resize-y min-h-[40px] max-h-[90px]"
+          rows={3}
+          className="w-full border border-gray-200 rounded-lg p-3 bg-white resize-y min-h-[60px] max-h-[120px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Short note for this slide…"
+          placeholder="Add your observations or notes about this slide..."
         />
-        <div className="mt-2 flex items-center gap-2">
-          <Button size="sm" onClick={onSave} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
+        <div className="flex items-center justify-between">
+          <Button size="sm" onClick={onSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            {saving ? "Saving..." : "Save Notes"}
           </Button>
-          {message && <span className="text-sm text-gray-700">{message}</span>}
+          {message && (
+            <span className={`text-sm ${message.includes('Saved') ? 'text-green-600' : 'text-gray-600'}`}>
+              {message}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// --- RESULTS AREA (z AddInfo pod Predictions) ---
-function ResultsArea({
-  results,
-  imageUrl,
-  overallClass,
-  totalCells,
-  classCounts,
-  addInfoDraft,
-  setAddInfoDraft,
-  savingAddInfo,
-  saveAddInfoMsg,
-  onSaveAddInfo,
-  loading,
-  showDetails,
-  setShowDetails,
-}: {
+interface ResultsAreaProps {
   results: Results | null;
   imageUrl: string | null;
   overallClass: string;
@@ -361,111 +490,296 @@ function ResultsArea({
   loading: boolean;
   showDetails: boolean;
   setShowDetails: (v: boolean) => void;
-}) {
+}
+
+export function ResultsArea({
+  results,
+  imageUrl,
+  overallClass,
+  totalCells,
+  classCounts,
+  addInfoDraft,
+  setAddInfoDraft,
+  savingAddInfo,
+  saveAddInfoMsg,
+  onSaveAddInfo,
+  loading,
+  showDetails,
+  setShowDetails,
+}: ResultsAreaProps) {
   if (!results || loading) return null;
 
+  const getClassColor = (className: string) =>
+    CLASS_COLORS[className] || "bg-gray-100 text-gray-800 border-gray-200";
+
   return (
-    <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-6 items-start px-4">
-      {/* Obraz */}
-      <div className="md:col-span-2 h-[640px] rounded-2xl border bg-white/70 p-2 flex items-center justify-center shadow">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt="Detected cells with bounding boxes"
-            className="w-full h-full object-contain rounded-xl"
-          />
-        ) : (
-          <div className="text-gray-500">No image available</div>
-        )}
-      </div>
+    <div className="w-full max-w-7xl mx-auto px-4 py-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* LEWA KOLUMNA */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* Obraz */}
+          <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-lg">
+            <div className="relative w-full h-full min-h-[320px] flex items-center justify-center">
+              {imageUrl ? (
+                <>
+                  <img
+                    src={imageUrl}
+                    alt="Detected cells with bounding boxes"
+                    className="w-full h-full object-contain rounded-xl"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <span
+                      className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getClassColor(
+                        overallClass
+                      )}`}
+                    >
+                      {overallClass}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No image available</p>
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* Prawy panel */}
-      <div className="h-[640px] flex flex-col gap-4">
-        {/* Summary */}
-        <Card className="flex-1 overflow-auto backdrop-blur bg-white/70 border-white/50 shadow">
-          <CardHeader>
-            <CardTitle className="text-sky-900">Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p><strong>Slide UID:</strong> {results.slide_uid ?? "—"}</p>
-            <p><strong>Patient ID:</strong> {results.pacjent_uid ?? "—"}</p>
-            <p><strong>Overall class:</strong> {overallClass}</p>
-            <p><strong>Total cells:</strong> {totalCells}</p>
+          {/* Podsumowanie analizy */}
+          <div className="bg-white/95 backdrop-blur-lg border border-blue-100 rounded-xl p-6 shadow-md">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  Analysis Summary
+                </h3>
+                {results.slide_summary_text ||
+                results.slide_summary?.explanation ? (
+                  <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                    {results.slide_summary_text ||
+                      results.slide_summary?.explanation}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                    Automated cell detection and classification results with
+                    bounding boxes highlighting detected cells. Each cell is
+                    analyzed and classified based on morphological features
+                    and staining patterns.
+                  </p>
+                )}
+                {totalCells > 0 && (
+                  <div className="flex items-center gap-6 text-sm text-gray-600">
+                    <span className="flex items-center gap-2">
+                      Detected:{" "}
+                      <strong className="text-blue-600 text-lg">
+                        {totalCells}
+                      </strong>{" "}
+                      cells
+                    </span>
+                    <span className="flex items-center gap-2">
+                      Primary class:{" "}
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getClassColor(
+                          overallClass
+                        )}`}
+                      >
+                        {overallClass}
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {totalCells > 0 && (
-              <div className="mt-2">
-                <p className="font-semibold mb-1">Cells per class:</p>
-                <table className="text-sm w-full border rounded">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border px-2 py-1 text-left">Class</th>
-                      <th className="border px-2 py-1 text-right">Count</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+        {/* PRAWA KOLUMNA */}
+        <div className="lg:col-start-3 flex flex-col gap-6">
+          {/* GÓRA: Analysis Summary */}
+          <Card className="flex flex-col min-h-0 backdrop-blur-lg bg-white/95 border-blue-100 shadow-lg">
+            <CardHeader className="pb-3 shrink-0">
+              <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-600" />
+                Analysis Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Slide ID</p>
+                    <p className="text-sm font-mono break-all">
+                      {results.slide_uid ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Patient ID
+                    </p>
+                    <p className="text-sm font-mono break-all">
+                      {results.pacjent_uid ?? "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Classification
+                    </p>
+                    <span
+                      className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getClassColor(
+                        overallClass
+                      )}`}
+                    >
+                      {overallClass}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Total Cells
+                    </p>
+                    <p className="text-xl font-bold text-blue-600">
+                      {totalCells}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {totalCells > 0 && (
+                <div>
+                  <p className="font-semibold mb-3 text-gray-700">
+                    Cell Distribution
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
                     {Object.entries(classCounts).map(([cls, count]) => (
-                      <tr key={cls}>
-                        <td className="border px-2 py-1">{cls}</td>
-                        <td className="border px-2 py-1 text-right">{count}</td>
-                      </tr>
+                      <div
+                        key={cls}
+                        className="text-center p-2 rounded-lg bg-gray-50"
+                      >
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mb-1 ${getClassColor(
+                            cls
+                          )}`}
+                        >
+                          {cls}
+                        </span>
+                        <p className="text-lg font-bold text-gray-700">
+                          {count}
+                        </p>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <p className="text-sm text-gray-600 mt-3">
-              {results.slide_summary_text ?? results.slide_summary?.explanation ?? ""}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Predictions */}
-        <Card className="flex-1 overflow-auto backdrop-blur bg-white/70 border-white/50 shadow">
-          <CardHeader>
-            <CardTitle className="text-sky-900">Predictions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {results.predict_fused ? (
-              <div className="max-h-[220px] overflow-auto">
-                <table className="text-sm w-full border rounded">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border px-2 py-1">Cell ID</th>
-                      <th className="border px-2 py-1">Class</th>
+          {/* DÓŁ: Individual Cell Predictions */}
+          <Card className="flex flex-col flex-1 min-h-0 backdrop-blur-lg bg-white/95 border-blue-100 shadow-lg">
+            <CardHeader className="pb-3 shrink-0">
+              <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-600" />
+                Individual Cell Predictions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-0 overflow-y-hidden">
+              <div className="h-64 overflow-y-auto border-t border-gray-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600 border-b">
+                        Cell ID
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600 border-b">
+                        Class
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(results.predict_fused).map(([id, raw]) => {
-                      const label = mapClass(raw);
-                      return (
-                        <tr key={id}>
-                          <td className="border px-2 py-1">{id}</td>
-                          <td className="border px-2 py-1">{label}</td>
-                        </tr>
-                      );
-                    })}
+                    {results.predict_fused &&
+                      Object.entries(results.predict_fused).map(
+                        ([cellId, rawClass], index) => {
+                          const className = mapClass(rawClass);
+                          return (
+                            <tr
+                              key={cellId}
+                              className={`border-b border-gray-100 hover:bg-gray-50 ${
+                                index % 2 === 0
+                                  ? "bg-white"
+                                  : "bg-gray-50/50"
+                              }`}
+                            >
+                              <td
+                                className="px-4 py-3 font-mono text-gray-800 text-xs"
+                                title={cellId}
+                              >
+                                {cellId}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getClassColor(
+                                    className
+                                  )}`}
+                                >
+                                  {className}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        }
+                      )}
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <p className="text-gray-500">No predictions</p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Add info – krótka karta pod Predictions */}
-        <AddInfoCard
-          value={addInfoDraft}
-          onChange={setAddInfoDraft}
-          onSave={onSaveAddInfo}
-          saving={savingAddInfo}
-          message={saveAddInfoMsg}
-        />
+          {/* Notatki */}
+          <Card className="shrink-0 backdrop-blur-lg bg-white/95 border-blue-100 shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-600" />
+                Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                rows={2}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white resize-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={addInfoDraft}
+                onChange={(e) => setAddInfoDraft(e.target.value)}
+                placeholder="Add notes..."
+              />
+              {saveAddInfoMsg && (
+                <span
+                  className={`block mt-2 text-xs ${
+                    saveAddInfoMsg.includes("Saved")
+                      ? "text-green-600"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {saveAddInfoMsg}
+                </span>
+              )}
+            </CardContent>
+          </Card>
 
-        <Button variant="secondary" disabled={!results || loading} onClick={() => setShowDetails(!showDetails)}>
-          {showDetails ? "Hide details" : "Details"}
-        </Button>
+          {/* Przycisk Show Details */}
+          <Button
+            variant={showDetails ? "secondary" : "default"}
+            disabled={!results || loading}
+            onClick={() => setShowDetails(!showDetails)}
+            className="w-full shrink-0 flex items-center justify-center gap-2 text-sm px-6 h-10"
+          >
+            <Brain className="w-5 h-5" />
+            {showDetails ? "Hide Details" : "Show Details"}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -490,11 +804,14 @@ function CellsDetails({
   if (!results || !showDetails) return null;
 
   return (
-    <div className="w-full max-w-7xl bg-white/70 rounded-2xl p-4 shadow mx-4">
-      <h2 className="text-2xl font-semibold mb-4 text-sky-900">Cells — details</h2>
+    <div className="w-full max-w-7xl backdrop-blur-lg bg-white/95 rounded-2xl p-6 shadow-lg mx-4">
+      <div className="flex items-center gap-3 mb-6">
+        <Brain className="w-7 h-7 text-blue-600" />
+        <h2 className="text-3xl font-bold text-gray-800">Individual Cell Analysis</h2>
+      </div>
 
       {results.crop_public_urls ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Object.entries(results.crop_public_urls).map(([id, url]) => {
             const rawCls = results.predict_fused?.[id] ?? "—";
             const cls = mapClass(rawCls);
@@ -508,20 +825,30 @@ function CellsDetails({
             const limeErr = limeErrorById[id];
 
             return (
-              <Card key={id} className="overflow-hidden shadow">
-                <CardHeader className="pb-2">
+              <Card key={id} className="overflow-hidden shadow-lg border-blue-100">
+                <CardHeader className="pb-4">
                   <CardTitle className="flex items-center justify-between">
-                    <span>Cell #{id}</span>
-                    <span className="text-sm px-2 py-1 rounded bg-blue-50 text-blue-800">{cls}</span>
+                    <span className="text-lg">Cell #{id}</span>
+                    <span className={`inline-flex px-2 py-1 text-sm font-semibold rounded-md ${getClassColor(cls)}`}>
+                      {cls}
+                    </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="w-full h-48 border rounded flex items-center justify-center bg-gray-50">
-                    <img src={url} alt={`cell-${id}`} className="max-h-40 object-contain" />
+                <CardContent className="space-y-4 p-4">
+                  <div className="w-full h-48 border border-gray-200 rounded-lg flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                    <img src={url} alt={`cell-${id}`} className="max-h-44 object-contain rounded" />
                   </div>
 
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <Button variant="outline" size="sm" onClick={() => openGradcam(id)}>Grad-CAM</Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => openGradcam(id)}
+                      className="flex-1 hover:bg-blue-50"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Grad-CAM
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -529,63 +856,81 @@ function CellsDetails({
                       disabled={
                         limeBusy || (!results?.features_list?.[id] && !results?.slide_uid)
                       }
+                      className="flex-1 hover:bg-green-50"
                       title={
                         !results?.features_list?.[id] && !results?.slide_uid
                           ? "No features found and no slide UID"
                           : ""
                       }
                     >
-                      {limeBusy ? "LIME…" : "LIME"}
+                      {limeBusy ? (
+                        <>
+                          <div className="w-3 h-3 border border-gray-400 border-t-gray-600 rounded-full animate-spin mr-1" />
+                          LIME...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="w-4 h-4 mr-1" />
+                          LIME
+                        </>
+                      )}
                     </Button>
-                    {limeErr && <span className="text-xs text-red-600">{limeErr}</span>}
                   </div>
+                  {limeErr && <p className="text-xs text-red-600 text-center">{limeErr}</p>}
 
                   {probEntries.length > 0 && (
                     <div>
-                      <p className="font-semibold mb-1">Probabilities</p>
-                      <table className="text-sm w-full border rounded">
-                        <thead>
-                          <tr className="bg-gray-100">
-                            <th className="border px-2 py-1 text-left">Class</th>
-                            <th className="border px-2 py-1 text-right">Prob</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {probEntries.map(([k, v]) => (
-                            <tr key={k}>
-                              <td className="border px-2 py-1">{mapClass(k)}</td>
-                              <td className="border px-2 py-1 text-right">
-                                {Number.isFinite(v as number) ? Number(v).toFixed(3) : "—"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <p className="font-semibold mb-2 text-gray-700 flex items-center gap-2">
+                        <Activity className="w-4 h-4" />
+                        Probabilities
+                      </p>
+                      <div className="space-y-1">
+                        {probEntries.map(([k, v]) => {
+                          const percentage = Number.isFinite(v as number) ? (Number(v) * 100).toFixed(1) : "0";
+                          const mappedClass = mapClass(k);
+                          return (
+                            <div key={k} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md border ${getClassColor(mappedClass)}`}>
+                                {mappedClass}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full transition-all" 
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm font-mono w-12 text-right">{percentage}%</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
                   {featureEntries.length > 0 && (
                     <div>
-                      <p className="font-semibold mb-1">Features</p>
-                      <div className="max-h-40 overflow-auto border rounded">
-                        <table className="text-sm w-full">
-                          <thead>
-                            <tr className="bg-gray-100">
-                              <th className="border px-2 py-1 text-left">Feature</th>
-                              <th className="border px-2 py-1 text-right">Value</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {featureEntries.map(([k, v]) => (
-                              <tr key={k}>
-                                <td className="border px-2 py-1">{k}</td>
-                                <td className="border px-2 py-1 text-right">
-                                  {Number.isFinite(v as number) ? Number(v).toFixed(3) : "—"}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <p className="font-semibold mb-2 text-gray-700 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Features ({featureEntries.length})
+                      </p>
+                      <div className="max-h-32 overflow-auto border border-gray-200 rounded-lg">
+                        <div className="divide-y divide-gray-100">
+                          {featureEntries.slice(0, featureEntries.length).map(([k, v]) => (
+                            <div key={k} className="flex justify-between items-center p-2 text-sm">
+                              <span className="text-gray-600 truncate flex-1 mr-2">{k}</span>
+                              <span className="font-mono text-gray-800">
+                                {Number.isFinite(v as number) ? Number(v).toFixed(3) : "—"}
+                              </span>
+                            </div>
+                          ))}
+                          {/* {featureEntries.length > 5 && (
+                            <div className="p-2 text-xs text-gray-500 text-center">
+                              ... and {featureEntries.length - 5} more features
+                            </div>
+                          )} */}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -595,15 +940,23 @@ function CellsDetails({
           })}
         </div>
       ) : (
-        <p className="text-gray-500">No crops available.</p>
+        <div className="text-center py-12">
+          <Activity className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-500 text-lg">No cell crops available for analysis.</p>
+        </div>
       )}
     </div>
   );
 }
 
+// Helper function to get class colors
+const getClassColor = (className: string) => {
+  return CLASS_COLORS[className] || "bg-gray-100 text-gray-800 border-gray-200";
+};
+
 /* ====================== MAIN APP ====================== */
 export default function App() {
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>("home");
   const [user, setUser] = useState<User | null>(null);
 
   // auth
@@ -750,7 +1103,7 @@ export default function App() {
       const data: Results = await response.json();
       setResults(data);
       setImageUrl(data.bbox_public_url || null);
-      setShowDetails(true);
+      setShowDetails(false); // Start with details closed
       setAddInfoDraft(data.add_info ?? "");
       setProgress(100);
     } catch (err: any) {
@@ -808,7 +1161,7 @@ export default function App() {
       setLoading(true);
       setResults(null);
       setImageUrl(null);
-      setShowDetails(true);
+      setShowDetails(false);
       setAddInfoDraft("");
 
       const resp = await api(`http://localhost:8000/slide/${encodeURIComponent(selectedSlide.trim())}`);
@@ -827,7 +1180,7 @@ export default function App() {
     }
   };
 
-  // save add_info – optymistycznie, bez odświeżania
+  // save add_info
   const saveAddInfo = async () => {
     const sid = results?.slide_uid ?? selectedSlide;
     if (!sid) return;
@@ -836,7 +1189,7 @@ export default function App() {
       setSavingAddInfo(true);
       const prev = results?.add_info ?? "";
 
-      // optimistic
+      // optimistic update
       setResults((p) => (p ? { ...p, add_info: addInfoDraft } : p));
 
       const r = await fetch(`http://localhost:8000/slide/${encodeURIComponent(sid)}/add-info`, {
@@ -851,8 +1204,8 @@ export default function App() {
         const t = await r.text();
         throw new Error(t || `Save failed (${r.status})`);
       }
-      setSaveAddInfoMsg("Saved.");
-      setTimeout(() => setSaveAddInfoMsg(null), 1500);
+      setSaveAddInfoMsg("Saved successfully!");
+      setTimeout(() => setSaveAddInfoMsg(null), 2000);
     } catch (e: any) {
       setSaveAddInfoMsg(e?.message || "Save failed");
     } finally {
@@ -958,16 +1311,17 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Tło */}
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-indigo-50 to-white" />
-      <div className="absolute -top-20 -right-20 w-[40rem] h-[40rem] rounded-full bg-sky-200/20 blur-3xl" />
-      <div className="absolute -bottom-20 -left-20 w-[36rem] h-[36rem] rounded-full bg-indigo-200/20 blur-3xl" />
+    <div className="min-h-screen relative overflow-x-hidden font-sans" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
+      {/* Enhanced Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" />
+      <div className="fixed -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-br from-blue-200/40 to-indigo-300/40 blur-3xl animate-pulse" />
+      <div className="fixed -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-200/40 to-purple-300/40 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-blue-100/20 to-indigo-100/20 blur-3xl" />
 
-      <div className="relative">
+      <div className="relative z-10">
         <TopBar user={user} goHome={goHome} doLogout={doLogout} />
 
-        <div className="py-10 flex flex-col items-center gap-8">
+        <div className="py-8 flex flex-col items-center gap-8">
           {!user ? (
             <LoginView
               email={email}
@@ -1015,7 +1369,7 @@ export default function App() {
                 />
               )}
 
-              {/* Wyniki + detale */}
+              {/* Results and Details */}
               <ResultsArea
                 results={results}
                 imageUrl={imageUrl}
@@ -1031,6 +1385,7 @@ export default function App() {
                 showDetails={showDetails}
                 setShowDetails={setShowDetails}
               />
+              
               <CellsDetails
                 results={results}
                 showDetails={showDetails}
@@ -1043,39 +1398,73 @@ export default function App() {
           )}
         </div>
 
-        {/* Grad-CAM Dialog */}
+        {/* Enhanced Grad-CAM Dialog */}
         <Dialog open={gradcamOpen} onOpenChange={setGradcamOpen}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-6xl">
             <DialogHeader>
-              <DialogTitle>Grad-CAM {gradcamForId ? `for Cell #${gradcamForId}` : ""}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Eye className="w-6 h-6 text-blue-600" />
+                Grad-CAM Analysis {gradcamForId && `• Cell #${gradcamForId}`}
+              </DialogTitle>
             </DialogHeader>
 
             {gradcamLoading && (
-              <div className="py-6 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
-                <p className="mt-4 text-blue-700">Generating Grad-CAM…</p>
+              <div className="py-12 text-center">
+                <div className="relative mx-auto w-16 h-16 mb-6">
+                  <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <p className="text-lg text-blue-700 font-medium">Generating Grad-CAM visualization...</p>
+                <p className="text-sm text-gray-600 mt-2">This may take a few moments</p>
               </div>
             )}
 
-            {gradcamError && <p className="text-sm text-red-600">{gradcamError}</p>}
+            {gradcamError && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Activity className="w-8 h-8 text-red-600" />
+                </div>
+                <p className="text-red-600 font-medium">{gradcamError}</p>
+              </div>
+            )}
 
             {gradcamData && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="border rounded p-2">
-                  <p className="font-semibold mb-1">Overlay</p>
-                  <img src={gradcamData.overlay_url} className="w-full h-auto" />
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600">Original + Overlay</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <img src={gradcamData.overlay_url} className="w-full h-auto" alt="Overlay" />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600">Grad-CAM Heatmap</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <img src={gradcamData.heatmap_url} className="w-full h-auto" alt="Heatmap" />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600">Activation Map</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <img src={gradcamData.activation_url} className="w-full h-auto" alt="Activation" />
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="border rounded p-2">
-                  <p className="font-semibold mb-1">Grad-CAM</p>
-                  <img src={gradcamData.heatmap_url} className="w-full h-auto" />
-                </div>
-                <div className="border rounded p-2">
-                  <p className="font-semibold mb-1">Avg Activation</p>
-                  <img src={gradcamData.activation_url} className="w-full h-auto" />
-                </div>
-                <div className="md:col-span-3">
-                  <p className="text-sm text-gray-700">
-                    Predicted class (for CAM): <strong>{gradcamData.predicted_class}</strong>
+                
+                <div className="flex items-center justify-center p-4 bg-blue-50 rounded-lg">
+                  <p className="text-gray-700">
+                    Model prediction for this visualization: 
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-md ml-2 bg-blue-100 text-blue-800 border border-blue-200">
+                      {gradcamData.predicted_class}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -1083,22 +1472,45 @@ export default function App() {
           </DialogContent>
         </Dialog>
 
-        {/* Processing Dialog */}
+        {/* Enhanced Processing Dialog */}
         <Dialog open={loading} onOpenChange={() => {}}>
           <DialogContent
-            className="max-w-sm"
+            className="max-w-md"
             onInteractOutside={(e) => e.preventDefault()}
             onEscapeKeyDown={(e) => e.preventDefault()}
           >
-            <DialogHeader><DialogTitle>Processing…</DialogTitle></DialogHeader>
-            <div className="py-4 text-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto" />
-              <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
-                <div className="h-full bg-blue-600 transition-[width] duration-200" style={{ width: `${progress}%` }} />
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Brain className="w-6 h-6 text-blue-600" />
+                AI Analysis in Progress
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-6 text-center space-y-6">
+              <div className="relative mx-auto w-16 h-16">
+                <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
-              <p className="text-sm text-gray-700">
-                I am analysing patient slide {patientId ? `(${patientId})` : ""} — please wait…
-              </p>
+              
+              <div className="space-y-3">
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ease-out" 
+                    style={{ width: `${progress}%` }} 
+                  />
+                </div>
+                <p className="text-sm font-medium text-gray-700">
+                  {progress}% Complete
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-lg font-medium text-gray-800">
+                  Analyzing slide{patientId && ` for ${patientId}`}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Our AI is examining the cellular structures and classifying each cell. Please wait...
+                </p>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -1,21 +1,109 @@
-import json
-
-
+import os
+import pathlib
 import re
+from datetime import datetime
+import sys
+import json 
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+# Zaimportuj swoje funkcje z odpowiednich plików
+# Poniżej są przykładowe ścieżki - dostosuj je do struktury swojego projektu
+from llm_testing.test import get_info
+from llm_testing.test_gemini import analyze_with_gemini
 
-def read_json(json_data: str | dict):
-    """Prosta funkcja do odczytu JSON cytologii (obsługuje też ```json ... ```)."""
-    if isinstance(json_data, dict):
-        return json_data
-    if isinstance(json_data, str):
-        s = json_data.strip()
-        # usuń znaczniki ```json oraz ```
-        s = re.sub(r'^```(?:json)?\s*', '', s, flags=re.IGNORECASE)
-        s = re.sub(r'\s*```$', '', s)
-        return json.loads(s)
-    raise TypeError(f"Unsupported type: {type(json_data)}")
+# --- Konfiguracja klucza API ---
+# Upewnij się, że klucz API jest dostępny jako zmienna środowiskowa
+API_KEY = os.getenv("API_KEY", os.getenv("api_key", ""))
+if not API_KEY:
+    print("Ostrzeżenie: Klucz API nie został znaleziony. Wywołania API mogą się nie udać.")
 
-json_data = "```json\n{\n  \"cells\": [\n    {\n      \"id\": \"0\",\n      \"predicted_class\": \"NSIL\",\n      \"explanation\": \"Characterized by a very low nucleus-to-cell area ratio (NCr=0.0011) and a small nuclear size (N=154), consistent with a benign squamous cell.\",\n      \"confidence\": 1.0,\n      \"needs_expert_review\": false\n    },\n    {\n      \"id\": \"1\",\n      \"predicted_class\": \"NSIL\",\n      \"explanation\": \"Exhibits a low nucleus-to-cell area ratio (NCr=0.0167) and nuclear features within benign limits (N=3524, EqN=66.98).\",\n      \"confidence\": 1.0,\n      \"needs_expert_review\": false\n    },\n    {\n      \"id\": \"2\",\n      \"predicted_class\": \"NSIL\",\n      \"explanation\": \"Demonstrates a low nucleus-to-cell area ratio (NCr=0.0175) and nuclear dimensions consistent with benign cytology (N=3132, EqN=63.15).\",\n      \"confidence\": 1.0,\n      \"needs_expert_review\": false\n    },\n    {\n      \"id\": \"3\",\n      \"predicted_class\": \"NSIL\",\n      \"explanation\": \"Shows a low nucleus-to-cell area ratio (NCr=0.0271) and nuclear features typical of a benign squamous cell (N=2807, EqN=59.78).\",\n      \"confidence\": 0.98,\n      \"needs_expert_review\": false\n    },\n    {\n      \"id\": \"4\",\n      \"predicted_class\": \"NSIL\",\n      \"explanation\": \"Presents a low nucleus-to-cell area ratio (NCr=0.0304) and benign nuclear morphology (N=3656, EqN=68.23).\",\n      \"confidence\": 0.99,\n      \"needs_expert_review\": false\n    }\n  ],\n  \"slide_summary\": {\n    \"overall_class\": \"NSIL\",\n    \"explanation\": \"The slide contains five squamous cells, all classified as Negative for Squamous Intraepithelial Lesion (NSIL). All cells exhibit low nucleus-to-cell area ratios (NCr ranging from 0.0011 to 0.0304) and nuclear sizes within benign parameters, lacking features of atypia, koilocytosis, or significant nuclear enlargement associated with LSIL or HSIL.\",\n    \"confidence\": 0.98\n  }\n}\n```"
+# --- Twoja funkcja (bez zmian) ---
+def process_image(image_path: str, analyze) -> str:
+    """
+    Przetwarza pojedynczy obraz i zwraca przewidzianą klasę.
+    """
+    print(f"  Przetwarzanie obrazu: {os.path.basename(image_path)}")
+    try:
+        (features_list, predict_fused, probs, df_preds,
+         bbox_image_path, crop_paths) = get_info(image_path, show_image=False) # show_image=False, aby uniknąć wyskakujących okienek
 
-data = read_json(json_data)
-print(f"Klasa: {data['slide_summary']['overall_class']}")
+        response = analyze(
+            bbox_image_path, features_list, predict_fused, probs, api_key=API_KEY
+        )
+
+        def read_json(json_data: str | dict):
+            if isinstance(json_data, dict): return json_data
+            if isinstance(json_data, str):
+                s = json_data.strip()
+                s = re.sub(r'^```(?:json)?\s*', '', s, flags=re.IGNORECASE)
+                s = re.sub(r'\s*```$', '', s)
+                return json.loads(s)
+            raise TypeError(f"Unsupported type: {type(json_data)}")
+        
+        response_data = read_json(response)
+        slide_summary = response_data.get("slide_summary", {}) if isinstance(response_data, dict) else {}
+        overall_class = slide_summary.get("overall_class", "UNKNOWN")
+        return overall_class
+    
+    except Exception as e:
+        print(f"    Wystąpił błąd podczas przetwarzania obrazu {os.path.basename(image_path)}: {e}")
+        return "ERROR"
+
+# --- Funkcja testująca dokładność ---
+def test_folder_accuracy(directory_path: str, expected_class: str):
+    """
+    Testuje dokładność klasyfikacji dla wszystkich obrazów w danym folderze.
+    """
+    print(f"\n--- Rozpoczynam test dla folderu: '{directory_path}' ---")
+    print(f"Oczekiwana klasa dla wszystkich obrazów: '{expected_class}'")
+    
+    if not os.path.isdir(directory_path):
+        print(f"BŁĄD: Folder '{directory_path}' nie istnieje.")
+        return
+
+    # Filtrujemy tylko pliki z popularnymi rozszerzeniami obrazów
+    image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff')
+    image_files = [f for f in os.listdir(directory_path) if f.lower().endswith(image_extensions)]
+    
+    total_images = len(image_files)
+    if total_images == 0:
+        print("W podanym folderze nie znaleziono żadnych obrazów.")
+        return
+
+    correct_predictions = 0
+    
+    for i, filename in enumerate(image_files):
+        image_path = os.path.join(directory_path, filename)
+        print(f"\n[{i+1}/{total_images}] Testowanie pliku: {filename}")
+        
+        # Wywołujemy Twoją funkcję, przekazując `analyze_with_gemini` jako funkcję analizującą
+        predicted_class = process_image(image_path, analyze_with_gemini)
+        
+        print(f"    Otrzymana klasa: '{predicted_class}'")
+        
+        if predicted_class == expected_class:
+            correct_predictions += 1
+            print("    Wynik: POPRAWNY ✅")
+        else:
+            print(f"    Wynik: BŁĘDNY ❌ (Oczekiwano: '{expected_class}')")
+
+    # --- Podsumowanie ---
+    print("\n--- PODSUMOWANIE TESTU ---")
+    print(f"Przetworzono łącznie obrazów: {total_images}")
+    print(f"Poprawne predykcje: {correct_predictions}")
+    
+    if total_images > 0:
+        accuracy = (correct_predictions / total_images) * 100
+        print(f"Dokładność (Accuracy): {accuracy:.2f}%")
+    else:
+        print("Dokładność (Accuracy): N/A (brak obrazów)")
+
+# --- Uruchomienie testu ---
+if __name__ == "__main__":
+    # Konfiguracja testu
+    TARGET_FOLDER = r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 10'
+    EXPECTED_CLASS = "HSIL"
+    
+    # Wywołanie funkcji testującej
+    test_folder_accuracy(TARGET_FOLDER, EXPECTED_CLASS)
