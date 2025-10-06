@@ -163,9 +163,14 @@ def analyze_with_ollama(
         ],
         "stream": stream,
         "options": {
-            "temperature": 0.7, 
-            "top_p": 0.9
-        }
+        "num_predict": 2048,      # ↑ główny suwak długości
+        "num_ctx": 8192,          # zależne od modelu
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "top_k": 40,
+        "repeat_penalty": 1.05,   # delikatnie przeciw powtórkom
+        "repeat_last_n": 256
+    }
     }
 
     url = "http://localhost:11434/api/chat"

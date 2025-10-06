@@ -35,7 +35,7 @@ load_dotenv()
 unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\unet\unet_cell_nucleus_0208.pth"
 yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
 lightgbm_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_LightGBM3.pkl'
-rf_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\joined\best_model_RandomForest.pkl"
+rf_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\joined\model_probs_2709_RandomForest.pkl"
 
 CLASS_NAMES = ['HSIL', 'LSIL', 'NSIL']
 vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth'
@@ -156,13 +156,13 @@ def get_info(image_path, show_image=True):
         predict_class_vgg = predict_label(vgg_clf, crop)
         predict_classes_vgg[idx] = predict_class_vgg[0]
 
-        rf_predictions = predict_fused_func(rf_model['model'], rf_encoder, vgg_clf, unet, device, tmp_path)
+        rf_predictions = predict_fused_func(rf_model['model'], rf_encoder, vgg_clf,   gbm_model['model'], unet, device, tmp_path)
         predict_fused[idx] = rf_predictions
 
-        probs_vgg = predict_vgg_probs(vgg_clf, tmp_path, device)
-        probs_xgb = predict_gbm_probs(gbm_model['model'], label_encoder, features)
+        # probs_vgg = predict_vgg_probs(vgg_clf, tmp_path, device)
+        # probs_lg = predict_gbm_probs(gbm_model['model'], label_encoder, features)
         probs_fused = predict_fused_func(
-            rf_model['model'], rf_encoder, vgg_clf, unet, device, tmp_path, probs_output=True
+            rf_model['model'], rf_encoder, vgg_clf, gbm_model['model'], unet, device, tmp_path, probs_output=True
         )
         probs[idx] = {
             'fused': probs_fused

@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from llm_testing.test import get_info, ARCHITECTURE, vgg_weights, gbm_model, label_encoder
-from llm_testing.test_gemini import analyze_with_gemini
+from llm_testing.test_gemini import analyze_with_gemini, analyze_with_ollama
 from classification.models import CytologyClassifier
 from lime_helper import explainer, predict_fn
 from xai_helper import gradcam_on_image
@@ -218,8 +218,9 @@ async def process_image(
     (features_list, predict_fused, probs, df_preds,
      bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
 
-    response = analyze_with_gemini(
-        bbox_image_path, features_list, predict_fused, probs, api_key=API_KEY
+    response = analyze_with_ollama(
+        bbox_image_path, features_list, predict_fused, probs, model='qwen2.5vl:7b', stream=False,
+        #api_key=API_KEY
     )
 
     now = datetime.datetime.now()
