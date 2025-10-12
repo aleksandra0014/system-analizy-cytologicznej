@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-from segmentation.models import UNet, predict_masks, preprocess_image
+from segmentation.modelsUnet import UNet, predict_masks, preprocess_image
 
 def get_largest_contour(mask):
     """

@@ -13,7 +13,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from segmentation.models import UNet
+from segmentation.modelsUnet import UNet
 from classification.preprocessing import apply_clahe
 import joblib
 import pandas as pd

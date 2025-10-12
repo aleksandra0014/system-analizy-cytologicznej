@@ -14,7 +14,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from segmentation.models import UNet  # zakładamy, że masz swój UNet w models.py
+from segmentation.modelsUnet import UNet  # zakładamy, że masz swój UNet w models.py
 from classification.preprocessing import apply_clahe
 
 

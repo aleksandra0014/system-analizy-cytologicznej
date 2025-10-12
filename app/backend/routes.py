@@ -90,9 +90,10 @@ async def process_image(request: Request, file: UploadFile = File(...)):
     (features_list, predict_fused, probs, df_preds,
      bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
 
-    response = analyze_with_gemini(
-        bbox_image_path, features_list, predict_fused, probs, api_key=API_KEY
-        # model='qwen2.5vl:7b', stream=True
+    response = analyze_with_ollama(
+        bbox_image_path, features_list, predict_fused, probs, 
+        # api_key=API_KEY
+        model='qwen2.5vl:7b'
     )
 
     ext = os.path.splitext(bbox_image_path)[1] or ".png"
@@ -138,6 +139,9 @@ async def process_image(request: Request, file: UploadFile = File(...)):
     overall_class = slide_summary.get("overall_class", "UNKNOWN")
     confidence = slide_summary.get("confidence", "?")
     explanation = slide_summary.get("explanation", "")
+    with open('latest_response.json', 'w', encoding='utf-8') as f:
+        json.dump(response_data, f, ensure_ascii=False, indent=4)
+    print(response_data)
 
     return JSONResponse({
         "features_list": convert_np(features_list),
@@ -148,7 +152,9 @@ async def process_image(request: Request, file: UploadFile = File(...)):
         "crop_public_urls": crop_public_urls,
         "response": response,
         "slide_summary_text": f"{overall_class} (confidence {confidence}) — {explanation}".strip(),
-        "overall_class": overall_class
+        "overall_class": overall_class,
+        "response_data": response_data.get("cells"),
+        "respone": response_data
     })
 
 

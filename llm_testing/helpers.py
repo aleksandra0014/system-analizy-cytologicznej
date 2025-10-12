@@ -9,7 +9,7 @@ import cv2
 from PIL import Image
 from torchvision import transforms
 
-from segmentation.models import  preprocess_image, predict_masks
+from segmentation.modelsUnet import  preprocess_image, predict_masks
 from segmentation.features import extract_features
 
 def select_best_nucleus(mask, image_shape):

@@ -13,11 +13,7 @@ model.train(
     batch=16,
     optimizer='Adam', # optimizer to use
     lr0=0.001, # initial learning rate
-    degrees=10,
-    translate=0.1,
-    scale=0.5,
-    fliplr=0.5,
-    name="yolo_detector_2107_100_20_16_768",
+    name="16.0.001.bezaugmentacji", # name of the training run
     project="yolo_models/models",
     pretrained=True
 )

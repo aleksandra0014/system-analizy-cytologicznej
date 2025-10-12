@@ -2,7 +2,7 @@ import os
 import torch
 from torchvision import transforms
 from PIL import Image
-from classification.models import CytologyClassifier
+from models import CytologyClassifier
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -28,7 +28,7 @@ def grad_cam(architecture, model_path, image_path):
     elif architecture == 'resnet18':
         target_layer = model.model.layer4
     elif architecture == 'custom_cnn':
-        target_layer = model.model.features[-3]  # <- nn.ReLU()
+        target_layer = model.model.features[-3]  
 
     target_layer.register_forward_hook(forward_hook)
     target_layer.register_backward_hook(backward_hook)
@@ -43,11 +43,9 @@ def grad_cam(architecture, model_path, image_path):
     image = Image.open(image_path).convert('RGB')
     input_tensor = transform(image).unsqueeze(0)
 
-    # Forward i predykcja
     output = model.model(input_tensor)
     class_idx = torch.argmax(output, dim=1).item()
 
-    # Backward
     model.model.zero_grad()
     output[0, class_idx].backward()
 
@@ -56,7 +54,6 @@ def grad_cam(architecture, model_path, image_path):
     original_np = np.array(original)
 
     # === 2. AKTYWACJE ===
-    # if architecture == 'vgg16':
     feature_map = activations["conv_final"].squeeze(0)      
     # elif architecture == 'resnet18':
     #     feature_map = activations["layer4"].squeeze(0)          
@@ -108,8 +105,8 @@ def grad_cam(architecture, model_path, image_path):
     plt.show()
 
 if __name__ == "__main__":
-    architecture = 'vgg16'  # 'resnet18' or 'custom_cnn'
-    model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\16_0_0001_50_0608.pth'
+    architecture = 'resnet18' 
+    model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_0001_50_0608.pth'
     for subfolder in [
         r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\HSIL',
         r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\LSIL',

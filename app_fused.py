@@ -14,7 +14,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from segmentation.models import UNet
+from segmentation.modelsUnet import UNet
 from segmentation.features import extract_features
 from classification.models import CytologyClassifier
 import joblib

@@ -361,6 +361,8 @@ async def process_image(
         "slide_summary_text": slide_summary_text,
         "overall_class": overall_class,
         "add_info": None,
+        "response_data": response_data.get("cells"),
+        "response": response,
     })
 
 @app.post("/gradcam/")

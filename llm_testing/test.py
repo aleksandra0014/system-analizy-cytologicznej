@@ -19,7 +19,7 @@ import tempfile
 import os
 import joblib
 
-from segmentation.models import UNet, preprocess_image, predict_masks
+from segmentation.modelsUnet import UNet, preprocess_image, predict_masks
 from segmentation.features import extract_features
 from classification.models import CytologyClassifier, predict_label
 
@@ -38,8 +38,9 @@ lightgbm_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\segmentatio
 rf_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\joined\model_probs_2709_RandomForest.pkl"
 
 CLASS_NAMES = ['HSIL', 'LSIL', 'NSIL']
-vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth'
-ARCHITECTURE = 'vgg16'
+# vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth'
+vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_0001_50_0608.pth'
+ARCHITECTURE = 'resnet18'
 API_KEY = os.getenv("API_KEY", os.getenv("api_key", ''))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

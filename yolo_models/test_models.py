@@ -386,10 +386,11 @@ def plot_pr_curve(pr_data: Dict[int, Dict], class_names: List[str]) -> Any:
 
 
 models_paths = [
-    r'yolo_models\models\yolo_cells_detector_hybrid2\weights\best.pt',
-    r'yolo_models\models\yolo_cells_detector_hybrid3\weights\best.pt',
-    r'yolo_models\models\yolo_detector_2107_100_10_16_7683\weights\best.pt',
-    r'yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt',
+ r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\4.0.001.bezaugmentacji\weights\best.pt',
+ r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.bezaugmentacji\weights\best.pt',
+ r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\batch40.001aug\weights\best.pt',
+ r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt',
+ r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_10_16_7683\weights\best.pt'
 ]
 
 test_folders = [
