@@ -134,7 +134,7 @@ def get_info(image_path, show_image=True):
             continue
 
         _, tensor = preprocess_image(tmp_path)
-        masks = predict_masks(unet, tensor, device, threshold_nuclei=0.2, threshold_cell=0.5)
+        masks = predict_masks(unet, tensor, device, threshold_nuclei=0.3, threshold_cell=0.7)
         mask_nucleus = cv2.resize(masks[1], (crop.shape[1], crop.shape[0]))
         best_nucleus = select_best_nucleus(mask_nucleus, crop.shape[:2])
         mask_cell = cv2.resize(masks[0], (crop.shape[1], crop.shape[0])) * 255

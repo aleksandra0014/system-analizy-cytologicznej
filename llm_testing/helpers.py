@@ -115,7 +115,7 @@ def predict_vgg_probs(model_or_wrapper, image_path: str, device) -> np.ndarray:
 
 def predict_fused_func(pipe, label_encoder, classifier,  lg_model, unet, device,image_path, probs_output=False):
     pil_image, input_tensor = preprocess_image(image_path)
-    predicted_masks = predict_masks(unet, input_tensor, device, threshold_nuclei=0.2, threshold_cell=0.5)
+    predicted_masks = predict_masks(unet, input_tensor, device, threshold_nuclei=0.3, threshold_cell=0.7)
     cell_mask = predicted_masks[0]
     nucleus_mask = predicted_masks[1]
     features = extract_features(nucleus_mask, cell_mask)

@@ -41,6 +41,7 @@ type Results = {
   slide_summary_text?: string;
   overall_class?: string | number;
   add_info?: string | null;
+  cell_explanations?: Record<string, string>;
 };
 
 type GradcamResp = {
@@ -793,6 +794,7 @@ function CellsDetails({
   limeErrorById,
   openGradcam,
   openLime,
+  onCorrectClass,
 }: {
   results: Results | null;
   showDetails: boolean;
@@ -800,8 +802,18 @@ function CellsDetails({
   limeErrorById: Record<string, string>;
   openGradcam: (id: string) => void;
   openLime: (id: string) => Promise<void>;
+  onCorrectClass: (cellId: string, newClass: string) => Promise<void>;
 }) {
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [correctedClasses, setCorrectedClasses] = useState<Record<string, string>>({});
+
   if (!results || !showDetails) return null;
+
+  const handleCorrectClass = async (cellId: string, newClass: string) => {
+    await onCorrectClass(cellId, newClass);
+    setCorrectedClasses(prev => ({ ...prev, [cellId]: newClass }));
+    setEditingCell(null);
+  };
 
   return (
     <div className="w-full max-w-7xl backdrop-blur-lg bg-white/95 rounded-2xl p-6 shadow-lg mx-4">
@@ -814,30 +826,74 @@ function CellsDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Object.entries(results.crop_public_urls).map(([id, url]) => {
             const rawCls = results.predict_fused?.[id] ?? "—";
-            const cls = mapClass(rawCls);
+            const cls = correctedClasses[id] || mapClass(rawCls);
             const probs = results.probs?.[id]?.fused ?? {};
             const features = results.features_list?.[id] ?? {};
+            const explanation = results.cell_explanations?.[id] || "";
 
             const probEntries = Object.entries(probs).sort(([a], [b]) => a.localeCompare(b));
             const featureEntries = Object.entries(features).sort(([a], [b]) => a.localeCompare(b));
 
             const limeBusy = limeLoadingId === id;
             const limeErr = limeErrorById[id];
+            const isEditing = editingCell === id;
 
             return (
               <Card key={id} className="overflow-hidden shadow-lg border-blue-100">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center justify-between">
                     <span className="text-lg">Cell #{id}</span>
-                    <span className={`inline-flex px-2 py-1 text-sm font-semibold rounded-md ${getClassColor(cls)}`}>
-                      {cls}
-                    </span>
+                    {isEditing ? (
+                      <div
+                        className="flex gap-1 relative z-10 pointer-events-auto"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        {["HSIL", "LSIL", "NSIL"].map((classOption) => (
+                          <button
+                            key={classOption}
+                            type="button"                                       // ⬅ ważne
+                            onClick={() => handleCorrectClass(id, classOption)}
+                            className={`px-2 py-1 text-xs font-semibold rounded-md border-2 hover:scale-105 transition-transform ${getClassColor(classOption)}`}
+                          >
+                            {classOption}
+                          </button>
+                        ))}
+                        <button
+                          type="button"                                        // ⬅ ważne
+                          onClick={() => setEditingCell(null)}
+                          className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"                                          // ⬅ ważne
+                        onClick={(e) => { e.stopPropagation(); setEditingCell(id); }}
+                        className={`inline-flex px-2 py-1 text-sm font-semibold rounded-md ${getClassColor(cls)} hover:ring-2 hover:ring-blue-300 transition-all cursor-pointer`}
+                        title="Click to correct classification"
+                      >
+                        {cls}
+                        {correctedClasses[id] && <span className="ml-1 text-xs">✓</span>}
+                      </button>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 p-4">
                   <div className="w-full h-48 border border-gray-200 rounded-lg flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                     <img src={url} alt={`cell-${id}`} className="max-h-44 object-contain rounded" />
                   </div>
+
+                  {explanation && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-blue-800 mb-1 flex items-center gap-1">
+                        <Brain className="w-3 h-3" />
+                        AI Explanation
+                      </p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{explanation}</p>
+                    </div>
+                  )}
 
                   <div className="flex flex-wrap gap-2">
                     <Button 
@@ -1310,6 +1366,43 @@ export default function App() {
     }
   };
 
+    // w App()
+  const correctCellClass = async (cellId: string, newClass: "HSIL" | "LSIL" | "NSIL") => {
+    // komorka_uid = {slide_uid}:{cellId} – tak jak używasz w LIME
+    const komorkaUid =
+      results?.slide_uid
+        ? `${results.slide_uid}:${cellId}`
+        : selectedSlide
+        ? `${selectedSlide}:${cellId}`
+        : null;
+
+    if (!komorkaUid) {
+      // pokaż błąd w UI jeśli nie mamy slide_uid
+      console.error("Brak slide_uid do korekcji klasy");
+      return;
+    }
+
+    const res = await fetch(
+      `http://localhost:8000/cell/${encodeURIComponent(komorkaUid)}/correct-class`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ klasa_corrected: newClass }),
+      }
+    );
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || `Korekcja nie powiodła się (${res.status})`);
+    }
+
+    // (opcjonalnie) odśwież wyniki jeśli chcesz je mieć w stanie globalnym
+    // np. dorzuć znacznik do results – albo po prostu pozwól lokalnemu
+    // `correctedClasses` z CellsDetails pokazać ✓ (już to robisz).
+  };
+
+
   return (
     <div className="min-h-screen relative overflow-x-hidden font-sans" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
       {/* Enhanced Background */}
@@ -1393,6 +1486,7 @@ export default function App() {
                 limeErrorById={limeErrorById}
                 openGradcam={openGradcam}
                 openLime={openLime}
+                onCorrectClass={correctCellClass}
               />
             </>
           )}

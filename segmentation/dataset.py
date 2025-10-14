@@ -54,7 +54,7 @@ class CellNucleusDataset(Dataset):
 image_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\single_all"
 mask_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\mask"
 
-all_filenames = [f for f in os.listdir(image_dir) if f.endswith(".jpg")]
+all_filenames = [f for f in os.listdir(image_dir)]
 trainval_filenames, test_filenames = train_test_split(
     all_filenames, test_size=0.05, random_state=42)
 
@@ -65,8 +65,8 @@ train_dataset = CellNucleusDataset(image_dir, mask_dir, train_filenames)
 val_dataset = CellNucleusDataset(image_dir, mask_dir, val_filenames)
 test_dataset = CellNucleusDataset(image_dir, mask_dir, test_filenames)
 
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 if __name__ == "__main__":

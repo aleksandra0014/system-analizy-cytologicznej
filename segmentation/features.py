@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-from segmentation.modelsUnet import UNet, predict_masks, preprocess_image
+from segmentation.modelsUnet import UNet, UNet4Levels, predict_masks, preprocess_image
 
 def get_largest_contour(mask):
     """
@@ -148,10 +148,11 @@ def extract_features(nucleus_mask, cell_mask):
 
 if __name__ == "__main__":
 
-    model = UNet(in_channels=3, out_channels=2)
+    model = UNet4Levels(in_channels=3, out_channels=2)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.load_state_dict(torch.load(
-        r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208.pth",
+        # r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet_cell_nucleus_0208.pth",
+        r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet4_cell_nucleus_4_50_1310.pth",
         map_location=device
     ))
     model.to(device)
@@ -194,8 +195,8 @@ if __name__ == "__main__":
                             model,
                             input_tensor,
                             device,
-                            threshold_nuclei=0.2,  
-                            threshold_cell=0.5
+                            threshold_nuclei=0.3,  
+                            threshold_cell=0.7
                         )
 
                     cell_mask = (predicted_masks[0] > 0).astype(np.uint8)
@@ -219,7 +220,7 @@ if __name__ == "__main__":
                 rows.append(features)
                 processed += 1
 
-        out_csv = os.path.join(base_dir, f"features_{split}.csv")
+        out_csv = os.path.join(base_dir, f"features_{split}_new_unet.csv")
         if len(rows) == 0:
             print(f"[WARN] Brak wierszy dla splitu '{split}'. Nie zapisuję CSV.")
         else:

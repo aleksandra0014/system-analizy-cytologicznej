@@ -90,7 +90,8 @@ VALIDATORS = {
                     "features": {"bsonType": "object"},
                     "crop_gridfs_name": {"bsonType": ["string","null"]},
                     "crop_url": {"bsonType": ["string","null"]},
-                    "created_at": {"bsonType": "date"}
+                    "created_at": {"bsonType": "date"},
+                    "explanations": {"bsonType": ["object","null"]}
                 }
             }
         }

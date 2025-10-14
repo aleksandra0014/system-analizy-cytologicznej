@@ -10,6 +10,8 @@ from pydantic import BaseModel, EmailStr
 from pymongo import ReturnDocument
 from passlib.context import CryptContext
 from jose import jwt, JWTError
+from pydantic import BaseModel, Field
+
 
 import os as _os
 _os.environ["MPLBACKEND"] = "Agg"
@@ -305,6 +307,18 @@ async def process_image(
         {"$set": {"overall_class": overall_class, "slide_summary_text": slide_summary_text}}
     )
 
+    cells_explanations = {}
+    if isinstance(response_data, dict) and "cells" in response_data:
+        cells_list = response_data.get("cells", [])
+        if isinstance(cells_list, list):
+            for cell_info in cells_list:
+                if isinstance(cell_info, dict):
+                    cell_id = str(cell_info.get("id", ""))
+                    explanation_text = cell_info.get("explanation", "")
+                    cells_explanations[cell_id] = {
+                        "explanation": explanation_text,
+                    }
+
     crop_public_urls: dict[str, str] = {}
     crop_gridfs_names: dict[str, str] = {}
     komorki_docs = []
@@ -328,6 +342,10 @@ async def process_image(
             if hasattr(predicted, "item"): predicted = predicted.item()
             predicted = str(predicted) if predicted is not None else "—"
 
+            # Pobranie explanation dla tej komórki
+            cell_extra_info = cells_explanations.get(cid, {})
+            cell_explanation = cell_extra_info.get("explanation", "")
+
             crop_public_urls[cid] = curl
             crop_gridfs_names[cid] = crop_name
 
@@ -342,6 +360,7 @@ async def process_image(
                 "crop_gridfs_name": crop_name,
                 "crop_url": curl,
                 "created_at": now,
+                "explanation": cell_explanation,
             })
         except Exception:
             continue
@@ -363,6 +382,7 @@ async def process_image(
         "add_info": None,
         "response_data": response_data.get("cells"),
         "response": response,
+        "cells_explanations": cells_explanations,
     })
 
 @app.post("/gradcam/")
@@ -548,3 +568,37 @@ async def list_slides_for_patient(pacjent_uid: str, user=Depends(get_current_doc
             "add_info": d.get("add_info"),
         })
     return {"slides": out}
+
+
+class CorrectClassRequest(BaseModel):
+    klasa_corrected: str = Field(..., pattern="^(HSIL|LSIL|NSIL)$")
+
+@app.patch("/cell/{komorka_uid}/correct-class")
+async def correct_cell_class(
+    komorka_uid: str,
+    body: CorrectClassRequest,  
+    user=Depends(get_current_doctor),
+):
+
+    try:
+        result = await db[COLL["komorki"]].update_one(
+            {"komorka_uid": komorka_uid},
+            {
+                "$set": {
+                    "klasa_corrected": body.klasa_corrected,
+                    "corrected_at": datetime.datetime.utcnow(),
+                    "corrected_by": user.get("username") or user.get("email"),
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail=f"Cell {komorka_uid} not found")
+        
+        return {
+            "status": "ok",
+            "komorka_uid": komorka_uid,
+            "klasa_corrected": body.klasa_corrected
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update: {str(e)}")

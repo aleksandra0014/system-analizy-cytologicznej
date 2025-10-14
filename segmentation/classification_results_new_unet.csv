@@ -1,0 +1,6 @@
+Model,Split,Best_Params,Accuracy,Precision,Recall,F1
+RandomForest,Test,"{'clf__max_depth': 10, 'clf__min_samples_leaf': 1, 'clf__min_samples_split': 2, 'clf__n_estimators': 100}",0.9117647058823529,0.9033713200379867,0.9061253561253562,0.9046011021769321
+XGBoost,Test,"{'clf__colsample_bytree': 0.8, 'clf__learning_rate': 0.2, 'clf__max_depth': 3, 'clf__n_estimators': 100, 'clf__subsample': 0.8}",0.9019607843137255,0.8927003927003927,0.8942307692307692,0.89335654230747
+LightGBM,Test,"{'clf__colsample_bytree': 0.8, 'clf__learning_rate': 0.2, 'clf__max_depth': -1, 'clf__min_child_samples': 50, 'clf__n_estimators': 100, 'clf__num_leaves': 31, 'clf__subsample': 0.8}",0.8921568627450981,0.8826576576576577,0.8814102564102564,0.8818716984510698
+SVM,Test,"{'clf__C': 1, 'clf__gamma': 'scale', 'clf__kernel': 'rbf'}",0.8725490196078431,0.863378897525239,0.861965811965812,0.8625657076361302
+NeuralNet,Test,"{'clf__activation': 'tanh', 'clf__alpha': 0.001, 'clf__batch_size': 32, 'clf__hidden_layer_sizes': (64, 32), 'clf__learning_rate_init': 0.01, 'clf__max_iter': 300, 'clf__n_iter_no_change': 10}",0.8627450980392157,0.8489892331355745,0.8455840455840455,0.8467985794013191

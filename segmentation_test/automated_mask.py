@@ -6,8 +6,8 @@ import cv2
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 
-single_all_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\single_all"
-output_mask_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\mask"
+single_all_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\unet_pomoc"
+output_mask_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\unet_pomoc_mask"
 
 sam2_checkpoint = r"C:\Users\aleks\OneDrive\Documents\inzynierka\sam2\checkpoints\sam2.1_hiera_large.pt"
 model_cfg = r"C:\Users\aleks\OneDrive\Documents\inzynierka\sam2\sam2\configs\sam2.1\sam2.1_hiera_l.yaml"
@@ -29,9 +29,6 @@ mask_generator = SAM2AutomaticMaskGenerator(
 os.makedirs(output_mask_root, exist_ok=True)
 
 for filename in os.listdir(single_all_dir):
-    if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-        continue  
-
     image_path = os.path.join(single_all_dir, filename)
     image = Image.open(image_path).convert("RGB")
     image_np = np.array(image)

@@ -233,3 +233,124 @@ def move_files_to_val(base_dir: str, proporcion: float) -> None:
     print(f" Przeniesiono {len(val_subset)} plików do walidacji: {val_dir}")
 
 
+from pathlib import Path
+from typing import Iterable, Tuple
+from PIL import Image, UnidentifiedImageError
+
+# (opcjonalnie) wsparcie HEIC/HEIF – jeśli zainstalowano pillow-heif
+try:
+    import pillow_heif  # type: ignore
+    pillow_heif.register_heif_opener()  # pozwala PIL otwierać pliki HEIC/HEIF
+except Exception:
+    pass
+
+
+def convert_folder_to_png(
+    root_dir: str | Path,
+    *,
+    delete_original: bool = False,
+    overwrite_existing_png: bool = False,
+    verbose: bool = True,
+) -> Tuple[int, int, int]:
+    """
+    Rekurencyjnie konwertuje wszystkie obrazy w folderze (i podfolderach) na PNG.
+    PNG-ów nie konwertuje ponownie (chyba, że ustawisz overwrite_existing_png=True).
+
+    Parametry:
+        root_dir: folder startowy.
+        delete_original: jeśli True – usuwa oryginalne pliki po udanej konwersji.
+        overwrite_existing_png: jeśli True – nadpisuje istniejące .png (np. przy ponownej konwersji).
+        verbose: jeśli True – wypisuje podstawowe logi postępu.
+
+    Zwraca:
+        (liczba_plików_sprawdzonych, liczba_sukcesów_konwersji, liczba_błędów)
+    """
+    root = Path(root_dir).expanduser().resolve()
+    checked = converted = errors = 0
+
+    if not root.exists() or not root.is_dir():
+        raise NotADirectoryError(f"Nieprawidłowy folder: {root}")
+
+    def log(msg: str):
+        if verbose:
+            print(msg)
+
+    # Przechodzimy przez wszystkie pliki
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        checked += 1
+
+        # Jeśli to już PNG i nie chcemy nadpisywać – pomiń
+        if path.suffix.lower() == ".png" and not overwrite_existing_png:
+            continue
+
+        try:
+            # Próbujemy otworzyć jako obraz – niezależnie od rozszerzenia
+            with Image.open(path) as im:
+                # Jeśli to PNG i nie chcemy nadpisywać – pomiń (ponowna kontrola w razie fałszywych rozszerzeń)
+                if im.format == "PNG" and not overwrite_existing_png:
+                    continue
+
+                # Ustal ścieżkę docelową
+                target = path.with_suffix(".png")
+
+                # Rozwiąż konflikt nazw: plik.png już istnieje – dopisz sufiks
+                if target.exists() and not overwrite_existing_png:
+                    stem = target.stem
+                    parent = target.parent
+                    i = 1
+                    while True:
+                        candidate = parent / f"{stem} ({i}).png"
+                        if not candidate.exists():
+                            target = candidate
+                            break
+                        i += 1
+
+                # Konwersja trybu – PNG najlepiej zadziała w "RGBA" lub "RGB"
+                if im.mode in ("P", "LA"):
+                    im = im.convert("RGBA")
+                elif im.mode == "CMYK":
+                    im = im.convert("RGB")
+                elif im.mode == "L":
+                    # skala szarości – można zapisać bez konwersji, ale RGB jest szerzej wspierane
+                    im = im.convert("RGB")
+                else:
+                    # np. RGB, RGBA – zostaw
+                    pass
+
+                # Uwaga na animacje (GIF/WEBP/TIFF): Pillow nie zapisze APNG – bierzemy pierwszą klatkę
+                if getattr(im, "is_animated", False):
+                    im.seek(0)
+
+                # Zapis PNG (kompresja bezstratna)
+                im.save(target, format="PNG", optimize=True)
+
+                # Weryfikacja zapisu
+                if not target.exists() or target.stat().st_size == 0:
+                    raise IOError("Zapis nie powiódł się (plik docelowy pusty).")
+
+                # (opcjonalnie) usuń oryginał
+                if delete_original:
+                    try:
+                        path.unlink(missing_ok=True)
+                    except Exception as e:
+                        log(f"[!] Nie udało się usunąć oryginału: {path} ({e})")
+
+                converted += 1
+                log(f"[OK] {path} -> {target}")
+
+        except UnidentifiedImageError:
+            # Nie-obrazy lub nieobsługiwane formaty – pomijamy
+            continue
+        except Exception as e:
+            errors += 1
+            log(f"[ERR] {path}: {e}")
+
+    log(f"\nSkończone. Sprawdzono: {checked}, skonwertowano: {converted}, błędów: {errors}")
+    return checked, converted, errors
+
+
+if __name__ == "__main__":
+
+    convert_folder_to_png(r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\mask", delete_original=False, overwrite_existing_png=False)

@@ -14,35 +14,48 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import numpy as np
 
-# class DoubleConv(nn.Module):
-#     def __init__(self, in_channels, out_channels):
-#         super().__init__()
-#         self.double_conv = nn.Sequential(
-#             nn.Conv2d(in_channels, out_channels, 3, padding=1, bias=False),
-#             nn.BatchNorm2d(out_channels),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(out_channels, out_channels, 3, padding=1, bias=False),
-#             nn.BatchNorm2d(out_channels),
-#             nn.ReLU(inplace=True)
-#         )
-
-#     def forward(self, x):
-#         return self.double_conv(x)
-
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.Conv2d(in_channels, out_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, 3, padding=1),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
         return self.double_conv(x)
+
+# # class DoubleConv(nn.Module):
+# #     def __init__(self, in_channels, out_channels):
+# #         super().__init__()
+# #         self.double_conv = nn.Sequential(
+# #             nn.Conv2d(in_channels, out_channels, 3, padding=1),
+# #             nn.BatchNorm2d(out_channels),
+# #             nn.ReLU(inplace=True),
+# #             nn.Conv2d(out_channels, out_channels, 3, padding=1),
+# #             nn.BatchNorm2d(out_channels),
+# #             nn.ReLU(inplace=True)
+# #         )
+
+# #     def forward(self, x):
+# #         return self.double_conv(x)
+
+# class DoubleConv(nn.Module):
+#     def __init__(self, in_channels, out_channels):
+#         super().__init__()
+#         self.double_conv = nn.Sequential(
+#             nn.Conv2d(in_channels, out_channels, 3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(out_channels, out_channels, 3, padding=1),
+#             nn.ReLU(inplace=True)
+#         )
+
+#     def forward(self, x):
+#         return self.double_conv(x)
 
 class UNet(nn.Module):
     def __init__(self, in_channels=3, out_channels=2):  # 2 wyjścia: komórka i jądro
@@ -327,7 +340,7 @@ def preprocess_image(image_path):
     tensor = transform(image).unsqueeze(0)  
     return image, tensor
 
-def predict_masks(model, image_tensor, device, threshold_nuclei=0.3, threshold_cell=0.5):
+def predict_masks(model, image_tensor, device, threshold_nuclei=0.3, threshold_cell=0.7):
     model.eval()
     with torch.no_grad():
         image_tensor = image_tensor.to(device)
