@@ -1,16 +1,16 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
-from pymongo import MongoClient
+from pymongo import MongoClient as SyncMongoClient
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 MONGO_DB  = os.getenv("MONGO_DB",  "lbc_db")
 
-client = AsyncIOMotorClient(MONGO_URI)
-db     = client[MONGO_DB]
+client: AsyncIOMotorClient | None = None
+db = None
 
-slides_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="slides")
-crops_bucket  = AsyncIOMotorGridFSBucket(db, bucket_name="crops")
-xai_bucket    = AsyncIOMotorGridFSBucket(db, bucket_name="xai")
+slides_bucket: AsyncIOMotorGridFSBucket | None = None
+crops_bucket:  AsyncIOMotorGridFSBucket | None = None
+xai_bucket:    AsyncIOMotorGridFSBucket | None = None
 
 COLL = {
     "lekarze":  "lekarze",
@@ -70,7 +70,7 @@ VALIDATORS = {
                     "slide_summary_text": {"bsonType": ["string","null"]},
                     "bbox_gridfs_name": {"bsonType": ["string","null"]},
                     "bbox_url": {"bsonType": ["string","null"]},
-                    "add_info": {"bsonType": ["string","null"]}  # ⬅️ NOWE
+                    "add_info": {"bsonType": ["string","null"]}
                 }
             }
         }
@@ -159,10 +159,22 @@ INDEXES = {
     ],
 }
 
+async def connect() -> None:
+    global client, db, slides_bucket, crops_bucket, xai_bucket
+    client = AsyncIOMotorClient(MONGO_URI)
+    db = client[MONGO_DB]
+    slides_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="slides")
+    crops_bucket  = AsyncIOMotorGridFSBucket(db, bucket_name="crops")
+    xai_bucket    = AsyncIOMotorGridFSBucket(db, bucket_name="xai")
+
+async def disconnect() -> None:
+    global client
+    if client:
+        client.close()
+
 async def ensure_collections():
-    """Tworzy/aktualizuje kolekcje z walidatorami i indeksami."""
-    from pymongo import MongoClient as _SyncClient
-    sync = _SyncClient(MONGO_URI)[MONGO_DB]
+    """Tworzy/aktualizuje kolekcje z walidatorami i indeksami (tryb sync – administracyjny)."""
+    sync = SyncMongoClient(MONGO_URI)[MONGO_DB]
 
     for cname, cfg in VALIDATORS.items():
         if cname not in sync.list_collection_names():

@@ -41,8 +41,9 @@ type Results = {
   slide_summary_text?: string;
   overall_class?: string | number;
   add_info?: string | null;
-  cell_explanations?: Record<string, string>;
+  cells_explanations?: Record<string, string | { explanation?: string }>;
 };
+
 
 type GradcamResp = {
   overlay_url: string;
@@ -806,6 +807,7 @@ function CellsDetails({
 }) {
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [correctedClasses, setCorrectedClasses] = useState<Record<string, string>>({});
+  
 
   if (!results || !showDetails) return null;
 
@@ -829,7 +831,11 @@ function CellsDetails({
             const cls = correctedClasses[id] || mapClass(rawCls);
             const probs = results.probs?.[id]?.fused ?? {};
             const features = results.features_list?.[id] ?? {};
-            const explanation = results.cell_explanations?.[id] || "";
+            // const explanation = results.cells_explanations?.[id] || "";
+            const raw = results.cells_explanations?.[id];
+            console.log(results);
+            const explanation =
+              typeof raw === "string" ? raw : (raw?.explanation ?? "");
 
             const probEntries = Object.entries(probs).sort(([a], [b]) => a.localeCompare(b));
             const featureEntries = Object.entries(features).sort(([a], [b]) => a.localeCompare(b));
@@ -885,15 +891,15 @@ function CellsDetails({
                     <img src={url} alt={`cell-${id}`} className="max-h-44 object-contain rounded" />
                   </div>
 
-                  {explanation && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-blue-800 mb-1 flex items-center gap-1">
+                  {explanation &&(
+                    <div className="bg-grey-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-grey-200 mb-1 flex items-center gap-1">
                         <Brain className="w-3 h-3" />
                         AI Explanation
                       </p>
                       <p className="text-sm text-gray-700 leading-relaxed">{explanation}</p>
                     </div>
-                  )}
+            )}
 
                   <div className="flex flex-wrap gap-2">
                     <Button 

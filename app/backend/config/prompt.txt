@@ -1,0 +1,51 @@
+Input data:
+- Image: [provided separately as binary inline_data]
+- Per-cell features (JSON):
+$FEATURES_JSON
+
+- Class mapping:
+  0 → HSIL (High-grade Squamous Intraepithelial Lesion)
+  1 → LSIL (Low-grade Squamous Intraepithelial Lesion)
+  2 → NSIL (Negative for Squamous Intraepithelial Lesion, normal cell)
+
+- Predictions (per cell, indices as above):
+$PREDICTIONS_JSON
+
+- Prediction probabilities (per cell; order [HSIL, LSIL, NSIL]):
+$PROBS_JSON
+
+Task:
+1) For each cell:
+   - State the predicted class (HSIL/LSIL/NSIL).
+   - Briefly explain the rationale using the provided features (e.g., N, C, NCr, Np/Cp/NCpr, Nar/Car/NCar, Ext, Eq, Or, Solidity, maxA, minA).
+   - Report the prediction confidence (probability in [0,1]).
+   - Set "needs_expert_review" = true if confidence is low, classes are borderline (e.g., HSIL vs LSIL), or artifacts/overlap/poor focus make interpretation uncertain.
+
+2) Whole slide:
+   - Provide a concise overall description of the cytological picture (distribution of HSIL/LSIL/NSIL, notable patterns).
+   - Predict a global slide-level class (HSIL/LSIL/NSIL) informed by the distribution and confidence of cell-level predictions.
+   - Provide an overall confidence in [0,1].
+
+Output format (JSON only; no extra commentary):
+{
+  "cells": [
+    {
+      "id": <cell_id>,
+      "predicted_class": "<HSIL|LSIL|NSIL>",
+      "explanation": "<short clinical reason referencing features>",
+      "confidence": <float 0..1>,
+      "needs_expert_review": <true|false>
+    }
+  ],
+  "slide_summary": {
+    "overall_class": "<HSIL|LSIL|NSIL>",
+    "explanation": "<short overall explanation>",
+    "confidence": <float 0..1>
+  }
+}
+
+Constraints:
+- Return valid JSON only (no prose outside JSON).
+- Be specific but concise; avoid speculative language beyond the provided data.
+
+Remember to add slide summary with overall classification and explanation and confidence!

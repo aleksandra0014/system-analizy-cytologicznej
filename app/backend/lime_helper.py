@@ -1,21 +1,23 @@
+import os
 import pandas as pd
 import joblib
 import numpy as np
 from lime.lime_tabular import LimeTabularExplainer
 
-model_class = joblib.load(r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_LightGBM3.pkl")
+from dotenv import load_dotenv
+load_dotenv()
+ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_RandomForest_new_unet.pkl")
+model_class = joblib.load(ML_MODEL_PATH)
 label_encoder = model_class["label_encoder"]
 
-df1 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_train.csv')
-df2 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_val.csv')
-df_test = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_test.csv')
+df1 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_train_new_unet.csv')
+df2 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_val_new_unet.csv')
+df_test = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_test_new_unet.csv')
 df_train = pd.concat([df1, df2], ignore_index=True)
-
 
 TARGET = "class"
 feature_names = list(df_train.drop(columns=[TARGET]).columns)
 
-# 
 X_train = df_train.drop(columns=[TARGET])
 y_train = label_encoder.transform(df_train[TARGET])
 

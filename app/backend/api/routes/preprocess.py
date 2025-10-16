@@ -1,0 +1,204 @@
+import os, re, json, shutil, tempfile, uuid, pathlib, datetime
+from typing import Optional
+
+from fastapi import APIRouter, File, UploadFile, Request, HTTPException, Depends
+from fastapi.responses import JSONResponse
+from pymongo import ReturnDocument
+
+from app.backend.api.deps import get_current_doctor
+from app.backend.database import mongo
+from app.backend.prediction_helpers import get_info, label_encoder
+from app.backend.llm_helper import analyze_with_ollama
+
+router = APIRouter(tags=["preprocess"])
+
+def file_url(request: Request, bucket: str, filename: str) -> str:
+    return str(request.url_for("get_file_by_name", bucket_name=bucket, filename=filename))
+
+async def gridfs_upload_bytes(bucket, filename: str, data: bytes, content_type: str) -> str:
+    import io as _io
+    bio = _io.BytesIO(data)
+    await bucket.upload_from_stream(filename, bio, metadata={"contentType": content_type})
+    return filename
+
+async def gridfs_upload_disk(bucket, path: str, content_type: str = "image/png") -> str:
+    with open(path, "rb") as f:
+        data = f.read()
+    uuid_name = f"{uuid.uuid4().hex}{pathlib.Path(path).suffix or '.png'}"
+    return await gridfs_upload_bytes(bucket, uuid_name, data, content_type)
+
+@router.post("/process-image/")
+async def process_image(
+    request: Request,
+    file: UploadFile = File(...),
+    pacjent_id: Optional[str] = None,
+    user=Depends(get_current_doctor),
+):
+    # zapisz plik tymczasowo
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+
+    # wywołanie Twojej logiki predykcyjnej
+    (features_list, predict_fused, probs, df_preds,
+     bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
+
+    # LLM opis slajdu
+    response = analyze_with_ollama(
+        bbox_image_path, features_list, predict_fused, probs, model='qwen2.5vl:7b', stream=False,
+    )
+
+    now = datetime.datetime.utcnow()
+    pacjent_uid = pacjent_id or "UNKNOWN"
+
+    await mongo.db[mongo.COLL["pacjenci"]].find_one_and_update(
+        {"pacjent_uid": pacjent_uid},
+        {"$setOnInsert": {"created_at": now}},
+        upsert=True, return_document=ReturnDocument.AFTER
+    )
+
+    bbox_name = await gridfs_upload_disk(mongo.slides_bucket, bbox_image_path, "image/png")
+    bbox_url  = file_url(request, "slides", bbox_name)
+
+    slajd_uid = uuid.uuid4().hex
+    slide_doc = {
+        "slajd_uid": slajd_uid,
+        "pacjent_uid": pacjent_uid,
+        "created_at": now,
+        "status": "processed",
+        "overall_class": None,
+        "slide_summary_text": None,
+        "bbox_gridfs_name": bbox_name,
+        "bbox_url": bbox_url,
+        "add_info": None,
+    }
+    await mongo.db[mongo.COLL["slajdy"]].insert_one(slide_doc)
+
+    def convert_np(obj):
+        import numpy as _np
+        if isinstance(obj, _np.generic): return obj.item()
+        if isinstance(obj, _np.ndarray): return obj.tolist()
+        if isinstance(obj, dict): return {k: convert_np(v) for k, v in obj.items()}
+        if isinstance(obj, list): return [convert_np(i) for i in obj]
+        return obj
+
+    def read_json(json_data: str | dict):
+        if isinstance(json_data, dict): return json_data
+        if isinstance(json_data, str):
+            s = json_data.strip()
+            s = re.sub(r'^```(?:json)?\s*', '', s, flags=re.IGNORECASE)
+            s = re.sub(r'\s*```$', '', s)
+            return json.loads(s)
+        raise TypeError(f"Unsupported type: {type(json_data)}")
+
+    def _pick(d: dict, key):
+        if not isinstance(d, dict): return None
+        if key in d: return d.get(key)
+        s = str(key)
+        if s in d: return d.get(s)
+        try:
+            i = int(s)
+            if i in d: return d.get(i)
+        except Exception:
+            pass
+        return None
+
+    _CLASS_ORDER = [str(c) for c in getattr(label_encoder, "classes_", ["HSIL","LSIL","NSIL"])]
+
+    def _to_prob_map(p_raw):
+        if isinstance(p_raw, dict):
+            if "fused" in p_raw: p_raw = p_raw["fused"]
+            else: return {str(k): float(v) for k, v in p_raw.items()}
+        import numpy as _np
+        arr = _np.asarray(p_raw).reshape(-1) if p_raw is not None else _np.asarray([])
+        out = {}
+        for i, v in enumerate(arr):
+            key = _CLASS_ORDER[i] if i < len(_CLASS_ORDER) else str(i)
+            try: out[str(key)] = float(v)
+            except Exception: out[str(key)] = float(_np.float64(v))
+        return out
+
+    response_data = read_json(response) if response else {}
+    slide_summary = response_data.get("slide_summary", {}) if isinstance(response_data, dict) else {}
+    overall_class = slide_summary.get("overall_class", "UNKNOWN")
+    confidence = slide_summary.get("confidence", "?")
+    explanation = slide_summary.get("explanation", "")
+    slide_summary_text = f"{overall_class} (confidence {confidence}) — {explanation}".strip()
+
+    await mongo.db[mongo.COLL["slajdy"]].update_one(
+        {"slajd_uid": slajd_uid},
+        {"$set": {"overall_class": overall_class, "slide_summary_text": slide_summary_text}}
+    )
+
+    cells_explanations = {}
+    if isinstance(response_data, dict) and "cells" in response_data:
+        cells_list = response_data.get("cells", [])
+        if isinstance(cells_list, list):
+            for cell_info in cells_list:
+                if isinstance(cell_info, dict):
+                    cid = str(cell_info.get("id", ""))
+                    cells_explanations[cid] = {"explanation": cell_info.get("explanation", "")}
+
+    crop_public_urls: dict[str, str] = {}
+    crop_gridfs_names: dict[str, str] = {}
+    komorki_docs = []
+
+    for cell_id, cpath in (crop_paths or {}).items():
+        try:
+            crop_name = await gridfs_upload_disk(mongo.crops_bucket, cpath, "image/png")
+            curl = file_url(request, "crops", crop_name)
+            cid = str(cell_id)
+
+            p_raw        = _pick(probs, cid) or {}
+            probs_map    = _to_prob_map(p_raw)
+
+            features_map = _pick(features_list, cid) or {}
+            features_map = {
+                str(k): (float(v) if hasattr(v, "item") else (float(v) if isinstance(v, (int, float)) else v))
+                for k, v in features_map.items()
+            }
+
+            predicted = _pick(predict_fused, cid)
+            if hasattr(predicted, "item"): predicted = predicted.item()
+            predicted = str(predicted) if predicted is not None else "—"
+
+            cell_explanation = (cells_explanations.get(cid) or {}).get("explanation", "")
+
+            crop_public_urls[cid] = curl
+            crop_gridfs_names[cid] = crop_name
+
+            komorki_docs.append({
+                "komorka_uid": f"{slajd_uid}:{cid}",
+                "slajd_uid": slajd_uid,
+                "pacjent_uid": pacjent_uid,
+                "cell_id": cid,
+                "klasa": predicted,
+                "probs": probs_map,
+                "features": features_map,
+                "crop_gridfs_name": crop_name,
+                "crop_url": curl,
+                "created_at": now,
+                "explanation": cell_explanation,
+            })
+        except Exception:
+            continue
+
+    if komorki_docs:
+        await mongo.db[mongo.COLL["komorki"]].insert_many(komorki_docs)
+
+    return JSONResponse({
+        "slide_uid": slajd_uid,
+        "pacjent_uid": pacjent_uid,
+        "bbox_public_url": bbox_url,
+        "crop_public_urls": crop_public_urls,
+        "crop_gridfs_names": crop_gridfs_names,
+        "predict_fused": convert_np(predict_fused),
+        "probs": convert_np(probs),
+        "features_list": convert_np(features_list),
+        "slide_summary_text": slide_summary_text,
+        "overall_class": overall_class,
+        "add_info": None,
+        "response_data": response_data.get("cells") if isinstance(response_data, dict) else None,
+        "response": response,
+        "cells_explanations": cells_explanations,
+    })
