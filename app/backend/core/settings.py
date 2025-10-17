@@ -1,6 +1,7 @@
 from pydantic import Field, AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
+from pathlib import Path
 
 class Settings(BaseSettings):
     ENV: str = Field("dev", validation_alias="ENV")
@@ -15,7 +16,10 @@ class Settings(BaseSettings):
     ACCESS_TTL_SECONDS: int = 60 * 60 * 12
     COOKIE_NAME: str = "lbc_session"
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    # Load .env placed next to this settings file (app/backend/.env).
+    # When the app is started from project root, relative env file names may not be found,
+    # so use an absolute path to the backend .env to be deterministic.
+    model_config = SettingsConfigDict(env_file=str(Path(__file__).resolve().parent / ".env"), case_sensitive=False)
 
     @property
     def cookie_secure(self) -> bool:

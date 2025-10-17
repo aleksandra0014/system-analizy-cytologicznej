@@ -10,6 +10,7 @@ import requests
 from PIL import Image
 import io
 
+
 def to_builtin(obj):
     """Recursively convert numpy types to Python builtins so they can be JSON-serialized."""
     if isinstance(obj, (np.integer, )):
@@ -45,11 +46,36 @@ def render_prompt(template_text: str, *, features, predictions, probs) -> str:
         PROBS_JSON=json.dumps(probs_clean,          ensure_ascii=False, indent=2),
     )
 
-BASE_DIR = Path(__file__).resolve().parent  
+BASE_DIR = Path(__file__).resolve().parent
 SYSTEM_PATH = BASE_DIR / "config/system.txt"
 PROMPT_TEMPLATE_PATH = BASE_DIR / "config/prompt.txt"
 
-def analyze_with_gemini(image_path, features, predictions, probs, api_key, model="gemini-2.5-flash", temperrature=0.6, top_p=0.9):
+try:
+    from dotenv import load_dotenv
+    env_path = BASE_DIR / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=str(env_path))
+    else:
+        load_dotenv()
+except Exception:
+    pass
+
+API_KEY = os.getenv("API_KEY", os.getenv("api_key", ""))
+def _parse_float_env(name: str, default: float) -> float:
+    val = os.getenv(name)
+    if val is None or val == "":
+        return default
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+GEMINI_TEMPERATURE = _parse_float_env("GEMINI_TEMPERATURE", 0.6)
+GEMINI_TOP_P = _parse_float_env("GEMINI_TOP_P", 0.9)
+OLLAMA_TEMPERATURE = _parse_float_env("OLLAMA_TEMPERATURE", 0.6)
+OLLAMA_TOP_P = _parse_float_env("OLLAMA_TOP_P", 0.9)
+
+def analyze_with_gemini(image_path, features, predictions, probs, api_key=API_KEY, model="gemini-2.5-flash", temperature: float = GEMINI_TEMPERATURE, top_p: float = GEMINI_TOP_P):
     system_path = SYSTEM_PATH
     prompt_template_path = PROMPT_TEMPLATE_PATH
 
@@ -84,6 +110,10 @@ def analyze_with_gemini(image_path, features, predictions, probs, api_key, model
         if not mime.startswith("image/"):
             mime = "image/png"
 
+    api_key = API_KEY
+    if not api_key:
+        raise ValueError("Missing API key for Gemini/Google AI. Set API_KEY in app/backend/.env or pass api_key argument.")
+
     client = genai.Client(api_key=api_key)
 
     try:
@@ -97,7 +127,7 @@ def analyze_with_gemini(image_path, features, predictions, probs, api_key, model
                 ]},
             ],
             config=genai.types.GenerateContentConfig(
-                temperature=temperrature,
+                temperature=temperature,
                 top_p=top_p,
             ),
         )
@@ -115,7 +145,7 @@ def analyze_with_ollama(
     *,
     stream: bool = False, 
     on_chunk=None, 
-    temperrature=0.6, top_p=0.9
+    temperature: float = OLLAMA_TEMPERATURE, top_p: float = OLLAMA_TOP_P
 ):
     """
     Buduje prompt z plików i wysyła go do modelu w Ollama (lokalnie).
@@ -163,7 +193,7 @@ def analyze_with_ollama(
         "options": {
         "num_predict": 2048,      
         "num_ctx": 8192,          
-        "temperature": temperrature,
+        "temperature": temperature,
         "top_p": top_p,
         "top_k": 40,
         "repeat_penalty": 1.05,   

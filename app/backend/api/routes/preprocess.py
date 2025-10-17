@@ -1,6 +1,7 @@
 import os, re, json, shutil, tempfile, uuid, pathlib, datetime
 from typing import Optional
 
+from dotenv import load_dotenv
 from fastapi import APIRouter, File, UploadFile, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pymongo import ReturnDocument
@@ -8,9 +9,12 @@ from pymongo import ReturnDocument
 from app.backend.api.deps import get_current_doctor
 from app.backend.database import mongo
 from app.backend.prediction_helpers import get_info, label_encoder
-from app.backend.llm_helper import analyze_with_ollama
-
+from app.backend.llm_helper import analyze_with_ollama, analyze_with_gemini
+from app.backend.prediction_helpers import API_KEY
 router = APIRouter(tags=["preprocess"])
+
+# load_dotenv()
+# API_KEY = os.getenv("API_KEY")
 
 def file_url(request: Request, bucket: str, filename: str) -> str:
     return str(request.url_for("get_file_by_name", bucket_name=bucket, filename=filename))
@@ -33,21 +37,23 @@ async def process_image(
     file: UploadFile = File(...),
     pacjent_id: Optional[str] = None,
     user=Depends(get_current_doctor),
+    gemini=True
 ):
-    # zapisz plik tymczasowo
     with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
-    # wywołanie Twojej logiki predykcyjnej
     (features_list, predict_fused, probs, df_preds,
      bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
 
-    # LLM opis slajdu
-    response = analyze_with_ollama(
-        bbox_image_path, features_list, predict_fused, probs, model='qwen2.5vl:7b', stream=False,
-    )
-
+    if gemini:
+        response = analyze_with_gemini(
+                bbox_image_path, features_list, predict_fused, probs
+            )
+    else: 
+        response = analyze_with_ollama(
+                    bbox_image_path, features_list, predict_fused, probs, model='qwen2.5vl:7b', stream=False,
+                )
     now = datetime.datetime.utcnow()
     pacjent_uid = pacjent_id or "UNKNOWN"
 

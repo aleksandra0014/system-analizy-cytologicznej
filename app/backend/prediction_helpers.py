@@ -30,7 +30,16 @@ import matplotlib.patches as patches
 warnings.filterwarnings("ignore")
 
 from dotenv import load_dotenv
-load_dotenv()
+from pathlib import Path
+
+# Ensure we load the .env located in the backend folder (app/backend/.env)
+# using an absolute path so imports/run-from-root still pick it up.
+env_path = Path(__file__).resolve().parent / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=str(env_path))
+else:
+    # fallback to default behavior (looks in CWD and parents)
+    load_dotenv()
 
 CLASS_NAMES = os.getenv("CLASS_NAMES", "HSIL,LSIL,NSIL").split(",")
 ARCHITECTURE = os.getenv("ARCHITECTURE", "resnet18")
