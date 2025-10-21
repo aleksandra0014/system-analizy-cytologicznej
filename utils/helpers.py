@@ -350,7 +350,126 @@ def convert_folder_to_png(
     log(f"\nSkończone. Sprawdzono: {checked}, skonwertowano: {converted}, błędów: {errors}")
     return checked, converted, errors
 
+import os
+import shutil
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+import random
+
+# Ustawienia
+SOURCE_DIR = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides"  # Główny folder źródłowy
+OUTPUT_DIR = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_dataset"  # Folder wyjściowy
+TEST_SIZE = 0.2  # 20% danych na test
+RANDOM_SEED = 42  # Dla powtarzalności wyników
+
+# Klasy
+CLASSES = ["HSIL", "LSIL", "NSIL"]
+SUBFOLDERS = ["pow 40", "pow 10"]
+
+# Obsługiwane rozszerzenia obrazów
+IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff'}
+
+def collect_images(source_dir):
+    """Zbiera wszystkie ścieżki obrazów z podfolderów"""
+    images_by_class = {cls: [] for cls in CLASSES}
+    
+    for cls in CLASSES:
+        for subfolder in SUBFOLDERS:
+            folder_path = Path(source_dir) / cls / subfolder
+            
+            if not folder_path.exists():
+                print(f"⚠️  Folder nie istnieje: {folder_path}")
+                continue
+            
+            # Zbierz wszystkie obrazy
+            for img_path in folder_path.iterdir():
+                if img_path.suffix.lower() in IMAGE_EXTENSIONS:
+                    images_by_class[cls].append(img_path)
+        
+        print(f"✓ {cls}: znaleziono {len(images_by_class[cls])} obrazów")
+    
+    return images_by_class
+
+def create_output_structure(output_dir):
+    """Tworzy strukturę folderów dla train i test"""
+    for split in ['train', 'test']:
+        for cls in CLASSES:
+            folder = Path(output_dir) / split / cls
+            folder.mkdir(parents=True, exist_ok=True)
+
+def copy_images(image_list, dest_folder):
+    """Kopiuje obrazy do folderu docelowego"""
+    for img_path in image_list:
+        dest_path = dest_folder / img_path.name
+        
+        # Jeśli plik o tej nazwie już istnieje, dodaj suffix
+        counter = 1
+        while dest_path.exists():
+            stem = img_path.stem
+            suffix = img_path.suffix
+            dest_path = dest_folder / f"{stem}_{counter}{suffix}"
+            counter += 1
+        
+        shutil.copy2(img_path, dest_path)
+
+def split_and_organize(source_dir, output_dir, test_size=0.2, random_seed=42):
+    """Główna funkcja - dzieli dane i organizuje w train/test"""
+    
+    print(f"\n🔍 Skanowanie folderów w: {source_dir}\n")
+    
+    images_by_class = collect_images(source_dir)
+    
+    total_images = sum(len(imgs) for imgs in images_by_class.values())
+    if total_images == 0:
+        print("\n❌ Nie znaleziono żadnych obrazów!")
+        return
+    
+    print(f"\n📊 Łącznie znaleziono: {total_images} obrazów\n")
+    
+    print(f"📁 Tworzenie struktury w: {output_dir}\n")
+    create_output_structure(output_dir)
+    
+    random.seed(random_seed)
+    
+    for cls in CLASSES:
+        images = images_by_class[cls]
+        
+        if len(images) == 0:
+            print(f"⚠️  {cls}: brak obrazów do podziału")
+            continue
+        
+        train_imgs, test_imgs = train_test_split(
+            images, 
+            test_size=test_size, 
+            random_state=random_seed
+        )
+        
+        print(f"📦 {cls}:")
+        print(f"   → Train: {len(train_imgs)} obrazów")
+        print(f"   → Test:  {len(test_imgs)} obrazów")
+        
+        train_folder = Path(output_dir) / 'train' / cls
+        test_folder = Path(output_dir) / 'test' / cls
+        
+        copy_images(train_imgs, train_folder)
+        copy_images(test_imgs, test_folder)
+    
+    print(f"\n✅ Gotowe! Dataset zapisany w: {output_dir}")
+    print(f"\nStruktura:")
+    print(f"  {output_dir}/")
+    print(f"  ├── train/")
+    print(f"  │   ├── HSIL/")
+    print(f"  │   ├── LSIL/")
+    print(f"  │   └── NSIL/")
+    print(f"  └── test/")
+    print(f"      ├── HSIL/")
+    print(f"      ├── LSIL/")
+    print(f"      └── NSIL/")
 
 if __name__ == "__main__":
-
-    convert_folder_to_png(r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\mask", delete_original=False, overwrite_existing_png=False)
+    split_and_organize(
+        source_dir=SOURCE_DIR,
+        output_dir=OUTPUT_DIR,
+        test_size=TEST_SIZE,
+        random_seed=RANDOM_SEED
+    )
