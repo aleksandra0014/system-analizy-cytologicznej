@@ -9,6 +9,7 @@ import base64
 import requests
 from PIL import Image
 import io
+from typing import Any, Mapping
 
 
 def to_builtin(obj):
@@ -33,17 +34,51 @@ def load_text(path: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-def render_prompt(template_text: str, *, features, predictions, probs) -> str:
-    """Render the prompt template with JSON-serialized data using string.Template ($PLACEHOLDER)."""
+_CLASS_MAP = {0: "HSIL", 1: "LSIL", 2: "NSIL"}
+
+def _normalize_overall_class(value: Any) -> str:
+    """Przyjmij int 0/1/2 lub str i zwróć etykietę HSIL/LSIL/NSIL."""
+    if isinstance(value, int):
+        if value not in _CLASS_MAP:
+            raise ValueError(f"Invalid overall_class index: {value}")
+        return _CLASS_MAP[value]
+    if isinstance(value, str):
+        v = value.strip().upper()
+        if v in {"HSIL", "LSIL", "NSIL"}:
+            return v
+        raise ValueError(f"Invalid overall_class label: {value!r}")
+    raise TypeError(f"overall_class must be int or str, got {type(value).__name__}")
+
+def render_prompt(
+    template_text: str,
+    *,
+    features: Mapping[str, Any],
+    predictions: Mapping[str, Any],
+    probs: Mapping[str, Any],
+    overall_class: Any,
+    overall_probs: Any,
+) -> str:
+    """
+    Renderuje template z placeholderami:
+      $FEATURES_JSON
+      $PREDICTIONS_JSON
+      $PROBS_JSON
+      $OVERALL_CLASS
+      $OVERALL_PROBS_JSON
+    """
     features_clean = to_builtin(features)
     preds_clean    = to_builtin(predictions)
     probs_clean    = to_builtin(probs)
+    overall_probs_clean = to_builtin(overall_probs)
+    overall_class_label = _normalize_overall_class(overall_class)
 
     tpl = Template(template_text)
     return tpl.substitute(
         FEATURES_JSON=json.dumps(features_clean, ensure_ascii=False, indent=2),
-        PREDICTIONS_JSON=json.dumps(preds_clean,    ensure_ascii=False, indent=2),
-        PROBS_JSON=json.dumps(probs_clean,          ensure_ascii=False, indent=2),
+        PREDICTIONS_JSON=json.dumps(preds_clean, ensure_ascii=False, indent=2),
+        PROBS_JSON=json.dumps(probs_clean, ensure_ascii=False, indent=2),
+        OVERALL_CLASS=overall_class_label,
+        OVERALL_PROBS_JSON=json.dumps(overall_probs_clean, ensure_ascii=False, indent=2),
     )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -75,7 +110,7 @@ GEMINI_TOP_P = _parse_float_env("GEMINI_TOP_P", 0.9)
 OLLAMA_TEMPERATURE = _parse_float_env("OLLAMA_TEMPERATURE", 0.6)
 OLLAMA_TOP_P = _parse_float_env("OLLAMA_TOP_P", 0.9)
 
-def analyze_with_gemini(image_path, features, predictions, probs, api_key=API_KEY, model="gemini-2.5-flash", temperature: float = GEMINI_TEMPERATURE, top_p: float = GEMINI_TOP_P):
+def analyze_with_gemini(image_path, features, predictions, probs, oveall_class, overall_probs, api_key=API_KEY, model="gemini-2.5-flash", temperature: float = GEMINI_TEMPERATURE, top_p: float = GEMINI_TOP_P):
     system_path = SYSTEM_PATH
     prompt_template_path = PROMPT_TEMPLATE_PATH
 
@@ -88,7 +123,7 @@ def analyze_with_gemini(image_path, features, predictions, probs, api_key=API_KE
 
     system_text = system_path.read_text(encoding="utf-8")
     template_text = prompt_template_path.read_text(encoding="utf-8")
-    prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs)
+    prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs, overall_class=oveall_class, overall_probs=overall_probs)
 
 
     mime = guess_mime(image_path)
@@ -141,6 +176,8 @@ def analyze_with_ollama(
     features,
     predictions,
     probs,
+    oveall_class, 
+    overall_probs,
     model: str = "llava:latest",
     *,
     stream: bool = False, 
@@ -165,7 +202,7 @@ def analyze_with_ollama(
 
     system_text = system_path.read_text(encoding="utf-8")
     template_text = prompt_template_path.read_text(encoding="utf-8")
-    prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs)
+    prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs, overall_class=oveall_class, overall_probs=overall_probs)
 
     mime = guess_mime(image_path)
     if mime == "image/bmp":

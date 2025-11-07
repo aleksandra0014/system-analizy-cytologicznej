@@ -96,13 +96,6 @@ class UNet(nn.Module):
     
 class UNet4Levels(nn.Module):
     def __init__(self, in_channels=1, out_channels=2):
-        """
-        U-Net z 4 poziomami encodera/decodera
-        
-        Args:
-            in_channels: liczba kanałów wejściowych (1 dla grayscale, 3 dla RGB)
-            out_channels: liczba klas (np. 3: tło, komórka, jądro)
-        """
         super().__init__()
         
         # Encoder (Contracting Path)
@@ -292,38 +285,99 @@ def recall(pred, target, epsilon=1e-6):
     return (tp + epsilon) / (tp + fn + epsilon)
 
 
-def test_model(model, test_loader, device):
+def test_model(model, test_loader, device, threshold_cell=0.5, threshold_nucleus=0.5):
+    """
+    Testuje model segmentacyjny na zbiorze testowym, używając
+    oddzielnych progów dla maski komórki (kanał 0) i jądra (kanał 1).
+    
+    Oblicza metryki osobno dla każdej klasy oraz uśrednione (macro-average).
+    """
     model.eval()
     model.to(device)
 
-    dice_all = []
-    iou_all = []
-    precision_all = []
-    recall_all = []
+    dice_cell_all = []
+    iou_cell_all = []
+    precision_cell_all = []
+    recall_cell_all = []
+
+    dice_nucleus_all = []
+    iou_nucleus_all = []
+    precision_nucleus_all = []
+    recall_nucleus_all = []
 
     with torch.no_grad():
         for images, masks in test_loader:
             images = images.to(device)
-            masks = masks.to(device)
+            masks = masks.to(device) # Oczekiwany kształt: [B, 2, H, W]
 
-            outputs = torch.sigmoid(model(images))
-            preds = (outputs > 0.5).float()
+            outputs = torch.sigmoid(model(images)) # Kształt: [B, 2, H, W]
 
-            for cls in range(preds.shape[1]):  
-                dice_all.append(dice_score(preds[:, cls], masks[:, cls]))
-                iou_all.append(iou_score(preds[:, cls], masks[:, cls]))
-                precision_all.append(precision(preds[:, cls], masks[:, cls]))
-                recall_all.append(recall(preds[:, cls], masks[:, cls]))
+            # Kanał 0: Komórka
+            preds_cell = (outputs[:, 0] > threshold_cell).float()
+            masks_cell = masks[:, 0]
+            
+            # Kanał 1: Jądro
+            preds_nucleus = (outputs[:, 1] > threshold_nucleus).float()
+            masks_nucleus = masks[:, 1]
+
+            # Oblicz i zapisz metryki dla komórki (kanał 0)
+            dice_cell_all.append(dice_score(preds_cell, masks_cell))
+            iou_cell_all.append(iou_score(preds_cell, masks_cell))
+            precision_cell_all.append(precision(preds_cell, masks_cell))
+            recall_cell_all.append(recall(preds_cell, masks_cell))
+            
+            # Oblicz i zapisz metryki dla jądra (kanał 1)
+            dice_nucleus_all.append(dice_score(preds_nucleus, masks_nucleus))
+            iou_nucleus_all.append(iou_score(preds_nucleus, masks_nucleus))
+            precision_nucleus_all.append(precision(preds_nucleus, masks_nucleus))
+            recall_nucleus_all.append(recall(preds_nucleus, masks_nucleus))
+
 
     def mean_metric(metric_list):
-        all_vals = torch.cat(metric_list, dim=0)
-        return all_vals.mean().item()
+        if not metric_list:
+            return 0.0
+        all_vals = torch.cat(metric_list, dim=0) 
+        return all_vals.mean().item() 
 
-    print("\n📊 Results:")
-    print(f"Dice:     {mean_metric(dice_all):.4f}")
-    print(f"IoU:      {mean_metric(iou_all):.4f}")
-    print(f"Precision:{mean_metric(precision_all):.4f}")
-    print(f"Recall:   {mean_metric(recall_all):.4f}")
+    avg_dice_cell = mean_metric(dice_cell_all)
+    avg_iou_cell = mean_metric(iou_cell_all)
+    avg_precision_cell = mean_metric(precision_cell_all)
+    avg_recall_cell = mean_metric(recall_cell_all)
+
+    avg_dice_nucleus = mean_metric(dice_nucleus_all)
+    avg_iou_nucleus = mean_metric(iou_nucleus_all)
+    avg_precision_nucleus = mean_metric(precision_nucleus_all)
+    avg_recall_nucleus = mean_metric(recall_nucleus_all)
+
+    avg_dice_total = (avg_dice_cell + avg_dice_nucleus) / 2
+    avg_iou_total = (avg_iou_cell + avg_iou_nucleus) / 2
+    avg_precision_total = (avg_precision_cell + avg_precision_nucleus) / 2
+    avg_recall_total = (avg_recall_cell + avg_recall_nucleus) / 2
+
+    print("\n" + "="*40)
+    print(" " * 12 + "WYNIKI EWALUACJI")
+    print("="*40)
+
+    print("\n📊 --- Wyniki dla Komórki (Kanał 0) ---")
+    print(f"Próg:     {threshold_cell}")
+    print(f"Dice:     {avg_dice_cell:.4f}")
+    print(f"IoU:      {avg_iou_cell:.4f}")
+    print(f"Precision:{avg_precision_cell:.4f}")
+    print(f"Recall:   {avg_recall_cell:.4f}")
+
+    print("\n🔬 --- Wyniki dla Jądra (Kanał 1) ---")
+    print(f"Próg:     {threshold_nucleus}")
+    print(f"Dice:     {avg_dice_nucleus:.4f}")
+    print(f"IoU:      {avg_iou_nucleus:.4f}")
+    print(f"Precision:{avg_precision_nucleus:.4f}")
+    print(f"Recall:   {avg_recall_nucleus:.4f}")
+
+    print("\n📈 --- Wyniki Uśrednione (Macro-Average) ---")
+    print(f"Mean Dice:     {avg_dice_total:.4f}")
+    print(f"Mean IoU:      {avg_iou_total:.4f}")
+    print(f"Mean Precision:{avg_precision_total:.4f}")
+    print(f"Mean Recall:   {avg_recall_total:.4f}")
+    print("="*40)
 
 def load_model(weights_path, device):
     model = UNet(in_channels=3, out_channels=2)
@@ -350,12 +404,16 @@ def predict_masks(model, image_tensor, device, threshold_nuclei=0.3, threshold_c
         mask_cell = (preds[0] > threshold_cell).float().cpu().numpy()  # jądro
         mask_nucleus = (preds[1] > threshold_nuclei).float().cpu().numpy()      # komórka
 
+        # mask_cell = postprocess_mask(mask_cell)
+        # mask_nucleus = postprocess_mask(mask_nucleus)
+        # mask_nucleus = select_best_nucleus(mask_nucleus, image_tensor.shape[2:])
+
     return [mask_cell, mask_nucleus]  
 
 def select_best_nucleus(mask, image_shape):
     contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
-        return np.zeros_like(mask)
+        return mask
     h, w = image_shape
     center = np.array([w // 2, h // 2])
     best_score, best_contour = -np.inf, None
@@ -373,35 +431,6 @@ def select_best_nucleus(mask, image_shape):
     if best_contour is not None:
         cv2.drawContours(out, [best_contour], -1, 255, -1)
     return out
-
-
-def plot_results(model, image_path, device,  threshold_nuclei=0.3, threshold_cell=0.5, select_nucleus=False):
-    pil_image, input_tensor = preprocess_image(image_path)
-    predicted_masks = predict_masks(model, input_tensor, device, threshold_nuclei, threshold_cell)
-    cell_mask = predicted_masks[0]
-    nucleus_mask = predicted_masks[1]
-
-    if select_nucleus:
-        nucleus_mask = select_best_nucleus(nucleus_mask, pil_image.size[::-1])
-
-    fig, axs = plt.subplots(1, 3, figsize=(12, 4))
-
-    axs[0].imshow(pil_image)
-    axs[0].set_title("Oryginal")
-
-    axs[1].imshow(cell_mask, cmap='gray')
-    axs[1].set_title("Mask: cell")
-
-    axs[2].imshow(nucleus_mask, cmap='gray')
-    axs[2].set_title("Mask: nucleus")
-
-    for ax in axs:
-        ax.axis("off")
-
-    plt.tight_layout()
-    plt.show()
-
-
 
 def test_model_with_thresholds(model, test_loader, device, 
                                 threshold_cell_range=[0.3, 0.4, 0.5, 0.6, 0.7],
@@ -465,6 +494,8 @@ def test_model_with_thresholds(model, test_loader, device,
             # Średnie metryki
             avg_dice = (dice_cell + dice_nucleus) / 2
             avg_iou = (iou_cell + iou_nucleus) / 2
+            avg_precision = (precision_cell + precision_nucleus) / 2
+            avg_recall = (recall_cell + recall_nucleus) / 2
             
             # Zapisz wyniki
             key = (thresh_cell, thresh_nucleus)
@@ -483,7 +514,9 @@ def test_model_with_thresholds(model, test_loader, device,
                 },
                 'average': {
                     'dice': avg_dice.item(),
-                    'iou': avg_iou.item()
+                    'iou': avg_iou.item(), 
+                    'precision': avg_precision.item(),
+                    'recall': avg_recall.item()
                 }
             }
     
@@ -504,7 +537,7 @@ def find_best_thresholds(results, metric='dice'):
     best_score = -1
     best_thresholds = None
     best_results = None
-    
+    print(results)
     for (thresh_cell, thresh_nucleus), res in results.items():
         score = res['average'][metric]
         if score > best_score:
@@ -666,27 +699,65 @@ def plot_all_images_in_folder(model, device, folder_path, num_images=None, thres
     plt.show()
 
 
-def plot_images_from_filenames(model, device, folder_path, filenames, threshold_nuclei=0.2, threshold_cell=0.5, select_nucleus=False):
+
+def plot_images_from_filenames(model, device, folder_path, filenames, 
+                             threshold_nuclei=0.2, threshold_cell=0.5, 
+                             select_nucleus=False, 
+                             apply_morphology=False, 
+                             kernel_size=5):         
+    """
+    Rysuje obrazy i ich maski, opcjonalnie stosując operacje morfologiczne
+    (otwieranie i zamykanie) w celu wygładzenia masek.
+    
+    Args:
+        apply_morphology (bool): Czy zastosować operacje morfologiczne.
+        kernel_size (int): Rozmiar kernela, jeśli apply_morphology=True.
+    """
     n = len(filenames)
     fig, axs = plt.subplots(n, 3, figsize=(12, 4 * n))
     if n == 1:
         axs = [axs]
+        
     for idx, filename in enumerate(filenames):
         image_path = os.path.join(folder_path, filename)
         pil_image, input_tensor = preprocess_image(image_path)
+        
         predicted_masks = predict_masks(model, input_tensor, device, threshold_nuclei, threshold_cell)
         cell_mask = predicted_masks[0]
         nucleus_mask = predicted_masks[1]
+        
         if select_nucleus:
-            nucleus_mask = select_best_nucleus(nucleus_mask, pil_image.size[::-1])
+            nucleus_mask_try = select_best_nucleus(nucleus_mask, pil_image.size[::-1])
+            if nucleus_mask_try.any():
+                nucleus_mask = nucleus_mask_try
+
+        cell_mask_final = cell_mask
+        nucleus_mask_final = nucleus_mask
+        
+        if apply_morphology and kernel_size > 0:
+            kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+            cell_mask_uint8 = (cell_mask.astype(np.uint8) * 255)
+            nucleus_mask_uint8 = (nucleus_mask.astype(np.uint8) * 255)
+
+            cell_mask_opened = cv2.morphologyEx(cell_mask_uint8, cv2.MORPH_OPEN, kernel)
+            nucleus_mask_opened = cv2.morphologyEx(nucleus_mask_uint8, cv2.MORPH_OPEN, kernel)
+
+            cell_mask_final = cv2.morphologyEx(cell_mask_opened, cv2.MORPH_CLOSE, kernel)
+            nucleus_mask_final = cv2.morphologyEx(nucleus_mask_opened, cv2.MORPH_CLOSE, kernel)
+        
+
         axs[idx][0].imshow(pil_image)
         axs[idx][0].set_title(f"Oryginal: {filename}")
         axs[idx][0].axis("off")
-        axs[idx][1].imshow(cell_mask, cmap='gray')
+
+        axs[idx][1].imshow(cell_mask_final, cmap='gray')
         axs[idx][1].set_title("Mask: cell")
         axs[idx][1].axis("off")
-        axs[idx][2].imshow(nucleus_mask, cmap='gray')
+
+        axs[idx][2].imshow(nucleus_mask_final, cmap='gray')
         axs[idx][2].set_title("Mask: nucleus")
         axs[idx][2].axis("off")
+
     plt.tight_layout()
     plt.show()

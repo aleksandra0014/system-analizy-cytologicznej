@@ -425,11 +425,11 @@ export default function App() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="overflow-hidden border rounded">
-                    <div className="p-3 text-sm font-medium text-gray-600">Original + Overlay</div>
+                    <div className="p-3 text-sm font-medium text-gray-600">Original</div>
                     <img src={gradcamData.overlay_url} className="w-full h-auto" alt="Overlay" />
                   </div>
                   <div className="overflow-hidden border rounded">
-                    <div className="p-3 text-sm font-medium text-gray-600">Grad-CAM Heatmap</div>
+                    <div className="p-3 text-sm font-medium text-gray-600">Grad-CAM</div>
                     <img src={gradcamData.heatmap_url} className="w-full h-auto" alt="Heatmap" />
                   </div>
                   <div className="overflow-hidden border rounded">
@@ -465,7 +465,7 @@ export default function App() {
                 <p className="text-sm font-medium text-gray-700">{progress}% Complete</p>
               </div>
               <div className="space-y-2">
-                <p className="text-lg font-medium text-gray-800">Analyzing slide{patientId && ` for ${patientId}`}</p>
+                <p className="text-lg font-medium text-gray-800">Analyzing slide{patientId && ` for patient ${patientId}`}</p>
                 <p className="text-sm text-gray-600">Our AI is examining the cellular structures and classifying each cell. Please wait...</p>
               </div>
             </div>

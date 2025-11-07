@@ -19,7 +19,7 @@ import tempfile
 import os
 import joblib
 
-from segmentation.modelsUnet import UNet4Levels, preprocess_image, predict_masks
+from segmentation.modelsUnet import UNet4Levels, preprocess_image, predict_masks, UNet
 from segmentation.features import extract_features
 from classification.models import CytologyClassifier, predict_label
 
@@ -54,7 +54,7 @@ API_KEY = os.getenv("API_KEY", os.getenv("api_key", ''))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-unet = UNet4Levels(in_channels=3, out_channels=2)
+unet = UNet(in_channels=3, out_channels=2)
 unet.load_state_dict(torch.load(UNET_MODEL_PATH, map_location=device))
 unet.to(device).eval()
 
@@ -70,6 +70,9 @@ cnn_classifier = CytologyClassifier(num_classes=len(CLASS_NAMES), architecture=A
 cnn_classifier.load(CNN_MODEL_PATH)
 cnn_classifier.model.eval().to(device)
 
+def fuse_func(p1, p2, eps=1e-9):
+    p = (p1 + eps) + (p2 + eps)
+    return p / p.sum()
 
 def get_info(image_path, show_image=True):
     image = Image.open(image_path).convert("RGB")
@@ -94,6 +97,7 @@ def get_info(image_path, show_image=True):
     features_list = {}
     probs = {}
     crop_paths = {}
+    probs_list = []
 
     bbox_image_path = None
     if show_image:
@@ -141,6 +145,10 @@ def get_info(image_path, show_image=True):
         if yolo_class == 1:
             predicted_classes_cnn[idx] = 'HSIL/LSIL_group'
             predicted_classed_fused[idx] = 'HSIL/LSIL_group'
+            probs_list.append([0.7, 0.3, 0])
+            probs[idx] = {
+            'fused': [0.7, 0.3, 0]
+            }
             continue
 
         _, tensor = preprocess_image(tmp_path)
@@ -167,16 +175,16 @@ def get_info(image_path, show_image=True):
         predict_class_cnn = predict_label(cnn_classifier, crop)
         predicted_classes_cnn[idx] = predict_class_cnn[0]
 
-        rf_predictions = predict_fused_func(fused_model['model'], label_encode_fused, cnn_classifier,   ml_model['model'], unet, device, tmp_path)
-        predicted_classed_fused[idx] = rf_predictions
+        predicted_clas_fused = predict_fused_func_2(fuse_func, ml_model["model"], label_encoder, cnn_classifier, unet, device, tmp_path)
+        predicted_classed_fused[idx] = predicted_clas_fused
 
-        probs_fused = predict_fused_func(
-            fused_model['model'], label_encode_fused, cnn_classifier, ml_model['model'], unet, device, tmp_path, probs_output=True
-        )
+        probs_fused = predict_fused_func_2(fuse_func, ml_model["model"], label_encoder, cnn_classifier, unet, device, tmp_path, True)
+        
         probs[idx] = {
             'fused': probs_fused
         }
-
+        probs_list.append(probs_fused)
+    
     all_indices = set(predicted_classes_cnn.keys()) | set(predicted_classed_ml.keys()) | set(predicted_classed_fused.keys())
     rows = []
     for idx in sorted(all_indices):
@@ -189,5 +197,7 @@ def get_info(image_path, show_image=True):
 
     df_preds = pd.DataFrame(rows)
 
-    return features_list, predicted_classed_fused, probs, df_preds, bbox_image_path, crop_paths
+    return features_list, predicted_classed_fused, probs_list, df_preds, bbox_image_path, crop_paths
+
+    
 

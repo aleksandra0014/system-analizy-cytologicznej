@@ -386,23 +386,29 @@ def plot_pr_curve(pr_data: Dict[int, Dict], class_names: List[str]) -> Any:
 
 
 models_paths = [
- r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\4.0.001.bezaugmentacji\weights\best.pt',
- r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.bezaugmentacji\weights\best.pt',
- r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\batch40.001aug\weights\best.pt',
- r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt',
- r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_10_16_7683\weights\best.pt'
+ r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.augmentacja25_test\weights\best.pt',
+#  r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.bezaugmentacji\weights\best.pt',
+#  r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\batch40.001aug\weights\best.pt',
+#  r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt',
+#  r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_10_16_7683\weights\best.pt'
 ]
 
 test_folders = [
-    r"data\LBC_slides\HSIL\pow 10",
-    r"data\LBC_slides\LSIL\pow. 10",
-    r"data\LBC_slides\NSIL\pow. 10"
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_mendeley\Low squamous intra-epithelial lesion",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_mendeley\Negative for Intraepithelial malignancy",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_mendeley\High squamous intra-epithelial lesion",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 10",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 40",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 10",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 40",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\NSIL\pow 10",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\NSIL\pow 40",
 ]
 
 metric_folder = r'data_yolo\syntetic_and_mine_val'
-num_samples = 15
+num_samples = 10
 
-output_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\tests"
+output_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\tests\new"
 
 test_samples_per_folder = {}
 

@@ -14,17 +14,31 @@ $PREDICTIONS_JSON
 - Prediction probabilities (per cell; order [HSIL, LSIL, NSIL]):
 $PROBS_JSON
 
+- Slide-level final class (already computed elsewhere; do NOT change it):
+$OVERALL_CLASS
+
+- Slide-level class probabilities (order [HSIL, LSIL, NSIL]):
+$OVERALL_PROBS_JSON
+
+
 Task:
 1) For each cell:
    - State the predicted class (HSIL/LSIL/NSIL).
    - Briefly explain the rationale using the provided features (e.g., N, C, NCr, Np/Cp/NCpr, Nar/Car/NCar, Ext, Eq, Or, Solidity, maxA, minA).
    - Report the prediction confidence (probability in [0,1]).
-   - Set "needs_expert_review" = true if confidence is low, classes are borderline (e.g., HSIL vs LSIL), or artifacts/overlap/poor focus make interpretation uncertain.
+   - Set "needs_expert_review" = true if:
+       • confidence is low (e.g., < 0.6), or
+       • the top two class probabilities are close (margin < 0.15), suggesting borderline HSIL↔LSIL or LSIL↔NSIL, or
+       • artifacts/overlap/poor focus implied by features make interpretation uncertain.
 
-2) Whole slide:
-   - Provide a concise overall description of the cytological picture (distribution of HSIL/LSIL/NSIL, notable patterns).
-   - Predict a global slide-level class (HSIL/LSIL/NSIL) informed by the distribution and confidence of cell-level predictions.
-   - Provide an overall confidence in [0,1].
+2) Whole slide (EXPLANATION ONLY for the provided final class):
+   - Echo the provided slide-level "overall_class" exactly as given in $OVERALL_CLASS (do not recompute it).
+   - Provide a concise explanation that justifies this final class using:
+       • the distribution and confidence of per-cell predictions, and
+       • the slide-level probabilities in $OVERALL_PROBS_JSON.
+   - Set "confidence" to the probability of the provided overall class taken from $OVERALL_PROBS_JSON (value in [0,1]).
+   - If per-cell evidence appears discordant with the provided overall_class, note this briefly in the explanation (e.g., "minority of high-confidence HSIL cells present").
+
 
 Output format (JSON only; no extra commentary):
 {
@@ -39,7 +53,7 @@ Output format (JSON only; no extra commentary):
   ],
   "slide_summary": {
     "overall_class": "<HSIL|LSIL|NSIL>",
-    "explanation": "<short overall explanation>",
+    "explanation": "<short overall explanation leveraging per-cell evidence and $OVERALL_PROBS_JSON>",
     "confidence": <float 0..1>
   }
 }
@@ -47,5 +61,6 @@ Output format (JSON only; no extra commentary):
 Constraints:
 - Return valid JSON only (no prose outside JSON).
 - Be specific but concise; avoid speculative language beyond the provided data.
+- Do NOT alter the provided slide-level overall_class; only explain and quantify confidence from $OVERALL_PROBS_JSON.
 
-Remember to add slide summary with overall classification and explanation and confidence!
+Remember to include the slide summary with the given overall classification, explanation, and confidence!

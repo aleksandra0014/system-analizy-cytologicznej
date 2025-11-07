@@ -2,6 +2,7 @@
 path: data_yolo
 train: syntetic_and_mine
 val: syntetic_and_mine_val 
+test:  syntetic_and_mine_test
 
 names:
   0: cell

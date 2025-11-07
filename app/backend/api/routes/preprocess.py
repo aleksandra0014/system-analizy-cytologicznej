@@ -5,16 +5,26 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, File, UploadFile, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pymongo import ReturnDocument
+import torch
 
 from app.backend.api.deps import get_current_doctor
 from app.backend.database import mongo
 from app.backend.prediction_helpers import get_info, label_encoder
 from app.backend.llm_helper import analyze_with_ollama, analyze_with_gemini
 from app.backend.prediction_helpers import API_KEY
+from classification_slide.attention_models import AttentionMIL, predict_attention
 router = APIRouter(tags=["preprocess"])
 
-# load_dotenv()
+load_dotenv()
 # API_KEY = os.getenv("API_KEY")
+
+model_mil = AttentionMIL(
+    input_dim=3,    
+    hidden_dim=128,
+    num_classes=len(['HSIL', 'LSIL', 'NSIL']),
+    dropout=0.5
+)
+model_mil.load_state_dict(torch.load(os.getenv("ATTENTION_MODEL"), map_location=torch.device('cpu')))
 
 def file_url(request: Request, bucket: str, filename: str) -> str:
     return str(request.url_for("get_file_by_name", bucket_name=bucket, filename=filename))
@@ -37,7 +47,7 @@ async def process_image(
     file: UploadFile = File(...),
     pacjent_id: Optional[str] = None,
     user=Depends(get_current_doctor),
-    gemini=True
+    gemini=False
 ):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
         shutil.copyfileobj(file.file, tmp)
@@ -45,14 +55,25 @@ async def process_image(
 
     (features_list, predict_fused, probs, df_preds,
      bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
+    
+    _CLASS_ORDER = [str(c) for c in getattr(label_encoder, "classes_", ["HSIL","LSIL","NSIL"])]
+
+    pred, attn, probability = predict_attention(
+        model_mil,
+        probs,
+        'test',
+        torch.device("cpu"),
+        class_names=_CLASS_ORDER,
+        visualize=False
+    )
 
     if gemini:
         response = analyze_with_gemini(
-                bbox_image_path, features_list, predict_fused, probs
+                bbox_image_path, features_list, predict_fused, probs, pred, probability
             )
     else: 
         response = analyze_with_ollama(
-                    bbox_image_path, features_list, predict_fused, probs, model='qwen2.5vl:7b', stream=False,
+                    bbox_image_path, features_list, predict_fused, probs, pred, probability, model='qwen2.5vl:7b', stream=False,
                 )
     now = datetime.datetime.utcnow()
     pacjent_uid = pacjent_id or "UNKNOWN"
@@ -109,8 +130,6 @@ async def process_image(
             pass
         return None
 
-    _CLASS_ORDER = [str(c) for c in getattr(label_encoder, "classes_", ["HSIL","LSIL","NSIL"])]
-
     def _to_prob_map(p_raw):
         if isinstance(p_raw, dict):
             if "fused" in p_raw: p_raw = p_raw["fused"]
@@ -126,10 +145,12 @@ async def process_image(
 
     response_data = read_json(response) if response else {}
     slide_summary = response_data.get("slide_summary", {}) if isinstance(response_data, dict) else {}
-    overall_class = slide_summary.get("overall_class", "UNKNOWN")
-    confidence = slide_summary.get("confidence", "?")
+
+    
+    overall_class = _CLASS_ORDER[pred] if pred is not None else "UNKNOWN"
+    confidence = probability.max() if probability is not None else "?"
     explanation = slide_summary.get("explanation", "")
-    slide_summary_text = f"{overall_class} (confidence {confidence}) — {explanation}".strip()
+    slide_summary_text = f"{overall_class} (confidence {confidence:.3f}) — {explanation}".strip()
 
     await mongo.db[mongo.COLL["slajdy"]].update_one(
         {"slajd_uid": slajd_uid},

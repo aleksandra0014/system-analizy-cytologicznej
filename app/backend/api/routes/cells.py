@@ -1,5 +1,5 @@
 import datetime
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from pymongo import ReturnDocument
 
@@ -96,3 +96,27 @@ async def correct_cell_class(
         "komorka_uid": komorka_uid,
         "klasa_corrected": body.klasa_corrected
     }
+
+from fastapi import status
+
+@router.delete("/slide/{slajd_uid}/cell/{cell_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_cell_by_slide_and_cellid(
+    slajd_uid: str,
+    cell_id: str,
+    user=Depends(get_current_doctor),
+):
+    slide = await mongo.db[mongo.COLL["slajdy"]].find_one({"slajd_uid": slajd_uid})
+    if not slide:
+        raise HTTPException(status_code=404, detail=f"Slide {slajd_uid} not found")
+
+    doc = await mongo.db[mongo.COLL["komorki"]].find_one(
+        {"slajd_uid": slajd_uid, "cell_id": str(cell_id)},
+        {"_id": 1, "komorka_uid": 1}
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Cell with cell_id={cell_id} on slide={slajd_uid} not found"
+        )
+
+    await mongo.db[mongo.COLL["komorki"]].delete_one({"komorka_uid": doc["komorka_uid"]})

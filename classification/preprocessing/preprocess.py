@@ -104,4 +104,13 @@ def apply_clahe(
         return result
 
 if __name__=='__main__':
-    get_cropped_and_split_data(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single', r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3')
+    img = cv2.imread(r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 40\16b.bmp")
+    out = apply_clahe(
+        img,
+        clip_limit=10.0,
+        tile_grid_size=(8, 8),
+        use_median=True,  
+        median_kernel=3
+    )
+
+    cv2.imwrite('clahe10.png', out)

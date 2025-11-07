@@ -357,8 +357,8 @@ from sklearn.model_selection import train_test_split
 import random
 
 # Ustawienia
-SOURCE_DIR = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides"  # Główny folder źródłowy
-OUTPUT_DIR = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_dataset"  # Folder wyjściowy
+SOURCE_DIR = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides2"  # Główny folder źródłowy
+OUTPUT_DIR = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_dataset2"  # Folder wyjściowy
 TEST_SIZE = 0.2  # 20% danych na test
 RANDOM_SEED = 42  # Dla powtarzalności wyników
 

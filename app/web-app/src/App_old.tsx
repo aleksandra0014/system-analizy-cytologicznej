@@ -1605,7 +1605,7 @@ export default function App() {
               
               <div className="space-y-2">
                 <p className="text-lg font-medium text-gray-800">
-                  Analyzing slide{patientId && ` for ${patientId}`}
+                  Analyzing slide{patientId && ` for patient ${patientId}`}
                 </p>
                 <p className="text-sm text-gray-600">
                   Our AI is examining the cellular structures and classifying each cell. Please wait...

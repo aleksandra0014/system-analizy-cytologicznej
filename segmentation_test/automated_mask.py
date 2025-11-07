@@ -6,8 +6,8 @@ import cv2
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 
-single_all_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\unet_pomoc"
-output_mask_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\unet_pomoc_mask"
+single_all_dir = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\p"
+output_mask_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\p_mask"
 
 sam2_checkpoint = r"C:\Users\aleks\OneDrive\Documents\inzynierka\sam2\checkpoints\sam2.1_hiera_large.pt"
 model_cfg = r"C:\Users\aleks\OneDrive\Documents\inzynierka\sam2\sam2\configs\sam2.1\sam2.1_hiera_l.yaml"

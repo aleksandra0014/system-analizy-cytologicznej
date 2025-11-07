@@ -106,14 +106,19 @@ def grad_cam(architecture, model_path, image_path):
 
 if __name__ == "__main__":
     architecture = 'resnet18' 
-    model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_0001_50_0608.pth'
+    model_path = r'C:\\Users\\aleks\\OneDrive\\Documents\\inzynierka\\classification\\classification_models\\resnet18\\16_0_0001_50_1110.pth'
     for subfolder in [
         r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\HSIL',
         r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\LSIL',
         r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\TEST\NSIL'
     ]:
+        num = 10
         for filename in os.listdir(subfolder):
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
                 image_path = os.path.join(subfolder, filename)
                 print(f"Processing: {image_path}")
             grad_cam(architecture, model_path, image_path)
+            num -= 1
+            if num == 0:
+                 break
+        break

@@ -4,6 +4,21 @@ import { Eye } from "lucide-react";
 import type { Patient, SlideItem } from "@/types";
 import { mapClass } from "@/lib/constants";
 
+const formatDateTime = (iso: string) => {
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return "";
+  return dt.toLocaleString("pl-PL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Europe/Warsaw", 
+  }).replace(",", ""); 
+};
+
+
 export default function OldForm({ patients, selectedPatient, setSelectedPatient, slides, selectedSlide, setSelectedSlide, loading, errorMsg, onRefreshSlides, onShowSlide, onBack, }: { patients: Patient[]; selectedPatient: string; setSelectedPatient: (v: string) => void; slides: SlideItem[]; selectedSlide: string; setSelectedSlide: (v: string) => void; loading: boolean; errorMsg: string | null; onRefreshSlides: (uid: string) => void; onShowSlide: () => void; onBack: () => void; }) {
   return (
     <div className="max-w-4xl w-full mx-auto px-4">
@@ -36,7 +51,7 @@ export default function OldForm({ patients, selectedPatient, setSelectedPatient,
                     <option key={s.slajd_uid} value={s.slajd_uid}>
                       {s.slajd_uid}
                       {classLabel && ` • ${classLabel}`}
-                      {s.status && ` • ${s.status}`}
+                      {s.created_at && ` • ${formatDateTime(s.created_at)}`}
                     </option>
                   );
                 })}

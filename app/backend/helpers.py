@@ -142,6 +142,31 @@ def predict_fused_func(pipe, label_encoder, classifier,  lg_model, unet, device,
     else:
         proba = pipe.predict_proba(X_new)[0]
         return proba
+    
+def predict_fused_func_2(fuse_func, lg_model, label_encoder, classifier, unet, device,image_path, probs_output=False):
+    pil_image, input_tensor = preprocess_image(image_path)
+    predicted_masks = predict_masks(unet, input_tensor, device, threshold_nuclei=0.4, threshold_cell=0.6)
+    cell_mask = predicted_masks[0]
+    nucleus_mask = predicted_masks[1]
+    nucleus_mask = select_best_nucleus(nucleus_mask, nucleus_mask.shape)
+    features = extract_features(nucleus_mask, cell_mask)
+    feature_names = ['N', 'C', 'NCr', 'Np', 'Cp', 'NCp', 'MinA', 'MinAr', 'MaxA', 'MaxAr', 'Nar', 'Car', 'NCar', 'NExt', 'CExt', 'NCExt', 'NSol', 'CSol', 'NCs', 'EqN', 'EqC', 'NCEq', 'OrN', 'OrC', 'NCOr']
+    X_new = pd.DataFrame([[features[feat] for feat in feature_names]], columns=feature_names)
+    
+    probs2 = predict_ml_probs(lg_model, label_encoder, X_new)
+
+    probs = predict_cnn_probs(classifier, image_path, device)
+
+    
+    fused_probs = fuse_func(probs, probs2)
+
+    if not probs_output:
+        pred_idx = int(np.argmax(fused_probs))
+        pred_label = CLASS_NAMES[pred_idx]
+        return pred_label
+    else:
+        return fused_probs
+
 
 def predict_ml_probs(model, label_encoder, input_features: dict) -> np.ndarray:
     try:
