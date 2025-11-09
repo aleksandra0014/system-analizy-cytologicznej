@@ -25,6 +25,8 @@ from classification.models import CytologyClassifier, predict_label
 
 from app.backend.helpers import *  
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 warnings.filterwarnings("ignore")
@@ -197,7 +199,7 @@ def get_info(image_path, show_image=True):
 
     df_preds = pd.DataFrame(rows)
 
-    return features_list, predicted_classed_fused, probs_list, df_preds, bbox_image_path, crop_paths
+    return features_list, predicted_classed_fused, probs, probs_list, df_preds, bbox_image_path, crop_paths
 
     
 

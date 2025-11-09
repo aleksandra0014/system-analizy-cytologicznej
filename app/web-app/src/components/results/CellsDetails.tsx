@@ -31,10 +31,14 @@ export default function CellsDetails(props: {
   const [deletedIds, setDeletedIds] = useState<Record<string, true>>({});
 
   // Filtry: tylko HSIL / LSIL / NSIL
-  const [activeClasses, setActiveClasses] = useState<Record<"HSIL" | "LSIL" | "NSIL", boolean>>({
+  type CellClass = "HSIL" | "LSIL" | "NSIL";
+  type FilterKey = CellClass | "HSIL/LSIL_group";
+
+  const [activeClasses, setActiveClasses] = useState<Record<FilterKey, boolean>>({
     HSIL: true,
     LSIL: true,
     NSIL: true,
+    "HSIL/LSIL_group": true, // nowy filtr-grupa (domyślnie off)
   });
 
   // --- Handlery ---
@@ -112,7 +116,7 @@ export default function CellsDetails(props: {
               <Filter className="w-4 h-4" /> Class:
             </span>
 
-            {(["HSIL", "LSIL", "NSIL"] as const).map((c) => {
+            {(["HSIL", "LSIL", "NSIL", "HSIL/LSIL_group"] as const).map((c) => {
               const active = activeClasses[c];
               return (
                 <button
@@ -121,7 +125,9 @@ export default function CellsDetails(props: {
                   onClick={() => setActiveClasses((prev) => ({ ...prev, [c]: !prev[c] }))}
                   className={`px-2 py-1 text-xs font-semibold rounded-md border transition-all ${
                     active
-                      ? getClassColor(c) + " ring-2 ring-blue-200"
+                      ? (c === "HSIL/LSIL_group"
+                          ? "bg-purple-100 text-purple-800 border-purple-300 ring-2 ring-purple-200"
+                          : getClassColor(c as CellClass) + " ring-2 ring-blue-200")
                       : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                   }`}
                   title={`Toggle ${c}`}
@@ -133,21 +139,19 @@ export default function CellsDetails(props: {
 
             <button
               type="button"
-              onClick={() => setActiveClasses({ HSIL: true, LSIL: true, NSIL: true })}
+              onClick={() => setActiveClasses({ HSIL: true, LSIL: true, NSIL: true, "HSIL/LSIL_group": false })}
               className="ml-2 px-2 py-1 text-xs rounded-md border text-gray-700 hover:bg-gray-50"
             >
               All
             </button>
             <button
               type="button"
-              onClick={() => setActiveClasses({ HSIL: false, LSIL: false, NSIL: false })}
+              onClick={() => setActiveClasses({ HSIL: false, LSIL: false, NSIL: false, "HSIL/LSIL_group": false })}
               className="px-2 py-1 text-xs rounded-md border text-gray-700 hover:bg-gray-50"
             >
               None
             </button>
           </div>
-
-          
         </div>
       </div>
 
@@ -156,7 +160,7 @@ export default function CellsDetails(props: {
         {items.map(([id, url]) => {
           const rawCls = results.predict_fused?.[id] ?? "—";
           const cls = correctedClasses[id] || mapClass(rawCls);
-          const probs = results.probs?.[id] ?? {};
+          const probs = results.probs?.[id].fused ?? {};
           const features = results.features_list?.[id] ?? {};
           const raw = results.cells_explanations?.[id];
           const explanation = typeof raw === "string" ? raw : raw?.explanation ?? "";

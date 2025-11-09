@@ -53,14 +53,13 @@ async def process_image(
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
-    (features_list, predict_fused, probs, df_preds,
-     bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
+    (features_list, predict_fused, probs, probs_list, df_preds, bbox_image_path, crop_paths) = get_info(tmp_path, show_image=True)
     
     _CLASS_ORDER = [str(c) for c in getattr(label_encoder, "classes_", ["HSIL","LSIL","NSIL"])]
 
     pred, attn, probability = predict_attention(
         model_mil,
-        probs,
+        probs_list,
         'test',
         torch.device("cpu"),
         class_names=_CLASS_ORDER,
@@ -73,7 +72,7 @@ async def process_image(
             )
     else: 
         response = analyze_with_ollama(
-                    bbox_image_path, features_list, predict_fused, probs, pred, probability, model='qwen2.5vl:7b', stream=False,
+                    bbox_image_path, features_list, predict_fused, probs_list, pred, probability, model='qwen2.5vl:7b', stream=False,
                 )
     now = datetime.datetime.utcnow()
     pacjent_uid = pacjent_id or "UNKNOWN"
@@ -100,6 +99,18 @@ async def process_image(
         "add_info": None,
     }
     await mongo.db[mongo.COLL["slajdy"]].insert_one(slide_doc)
+
+    slide_lek_doc = {
+        "slajd_uid": slajd_uid,
+        "lekarz_uid": user["lekarz_uid"],
+        "rola": "owner",
+        "granted_by": user["lekarz_uid"],
+        "granted_at": now,
+        "revoked_at": None,
+        "active": True,
+        "note": ""  
+    }
+    await mongo.db[mongo.COLL["access"]].insert_one(slide_lek_doc)
 
     def convert_np(obj):
         import numpy as _np

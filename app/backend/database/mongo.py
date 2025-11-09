@@ -19,6 +19,7 @@ COLL = {
     "komorki":  "komorki",
     "gradcam":  "gradcam",
     "lime":     "lime",
+    "access": "access",
 }
 
 VALIDATORS = {
@@ -128,6 +129,24 @@ VALIDATORS = {
                 }
             }
         }
+    }, 
+    COLL["access"]: {
+        "validator": {
+            "$jsonSchema": {
+                "bsonType": "object",
+                "required": ["slajd_uid", "lekarz_uid", "granted_by", "granted_at", "rola", "active"],
+                "properties": {
+                    "slajd_uid": {"bsonType": "string"},
+                    "lekarz_uid": {"bsonType": "string"},
+                    "rola": {"enum": ["owner", "viewer"]}, 
+                    "granted_by": {"bsonType": "string"},
+                    "granted_at": {"bsonType": "date"},
+                    "revoked_at": {"bsonType": ["date","null"]},
+                    "active": {"bsonType": "bool"},
+                    "note": {"bsonType": ["string","null"]}
+                }
+            }
+        }
     }
 }
 
@@ -157,6 +176,13 @@ INDEXES = {
     COLL["lime"]: [
         ( [("komorka_uid", 1), ("created_at", -1)], {} ),
     ],
+    COLL["access"]: [
+    ( [("slajd_uid", 1), ("lekarz_uid", 1)],
+      {"unique": True, "partialFilterExpression": {"active": True}} ),
+    ( [("lekarz_uid", 1), ("active", 1)], {} ),
+    ( [("slajd_uid", 1), ("active", 1)], {} ),
+    ( [("rola", 1)], {} )
+    ]
 }
 
 async def connect() -> None:

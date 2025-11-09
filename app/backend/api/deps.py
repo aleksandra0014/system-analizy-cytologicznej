@@ -23,4 +23,5 @@ async def get_current_doctor(request: Request):
         "imie": user.get("imie"),
         "nazwisko": user.get("nazwisko"),
         "rola": user.get("rola", "doctor"),
+        "lekarz_uid": user["lekarz_uid"],
     }
