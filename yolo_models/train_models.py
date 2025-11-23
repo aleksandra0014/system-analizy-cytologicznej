@@ -2,7 +2,7 @@
 from ultralytics import YOLO
 
 data_yaml = 'yolo_models/data.yaml' 
-weights = 'yolov8n.pt'   
+weights = 'yolo11s.pt'   
 
 model = YOLO(weights)  
 model.train(
@@ -17,7 +17,7 @@ model.train(
     translate=0.1,
     scale=0.5,
     fliplr=0.5,
-    name="16.0.001.augmentacja25_test", # name of the training run
+    name="2211", # name of the training run
     project="yolo_models/models",
     pretrained=True
 )

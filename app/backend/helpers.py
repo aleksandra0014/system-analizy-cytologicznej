@@ -115,33 +115,6 @@ def predict_cnn_probs(model_or_wrapper, image_path: str, device) -> np.ndarray:
     probs = F.softmax(logits, dim=1).squeeze(0).detach().cpu().numpy()
     return probs
 
-def predict_fused_func(pipe, label_encoder, classifier,  lg_model, unet, device,image_path, probs_output=False):
-    pil_image, input_tensor = preprocess_image(image_path)
-    predicted_masks = predict_masks(unet, input_tensor, device, threshold_nuclei=0.3, threshold_cell=0.7)
-    cell_mask = predicted_masks[0]
-    nucleus_mask = predicted_masks[1]
-    features = extract_features(nucleus_mask, cell_mask)
-
-    feature_names = ['N', 'C', 'NCr', 'Np', 'Cp', 'NCp', 'MinA', 'MinAr', 'MaxA', 'MaxAr', 'Nar', 'Car', 'NCar', 'NExt', 'CExt', 'NCExt', 'NSol', 'CSol', 'NCs', 'EqN', 'EqC', 'NCEq', 'OrN', 'OrC', 'NCOr']
-    X_new = pd.DataFrame([[features[feat] for feat in feature_names]], columns=feature_names)
-
-    probs2 = predict_ml_probs(lg_model, label_encoder, features)
-    X_new["lg_hsil"] = probs2[0]
-    X_new["lg_lsil"] = probs2[1]
-    X_new["lg_nsil"] = probs2[2]
-
-    probs = predict_cnn_probs(classifier, image_path, device)
-    X_new["vgg_hsil"] = probs[0]
-    X_new["vgg_lsil"] = probs[1]
-    X_new["vgg_nsil"] = probs[2]
-    
-    if not probs_output:
-        y_pred_encoded = pipe.predict(X_new)
-        predicted_class = label_encoder.inverse_transform(y_pred_encoded)[0]
-        return predicted_class
-    else:
-        proba = pipe.predict_proba(X_new)[0]
-        return proba
     
 def predict_fused_func_2(fuse_func, lg_model, label_encoder, classifier, unet, device,image_path, probs_output=False):
     pil_image, input_tensor = preprocess_image(image_path)

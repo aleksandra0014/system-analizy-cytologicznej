@@ -1,6 +1,0 @@
-Model,Split,Best_Params,Accuracy,Precision,Recall,F1
-LightGBM,Test,"{'clf__colsample_bytree': 0.8, 'clf__learning_rate': 0.1, 'clf__max_depth': -1, 'clf__min_child_samples': 20, 'clf__n_estimators': 100, 'clf__num_leaves': 31, 'clf__subsample': 0.8}",0.8712871287128713,0.861749680715198,0.8680402930402931,0.8632679650470606
-RandomForest,Test,"{'clf__max_depth': 10, 'clf__min_samples_leaf': 1, 'clf__min_samples_split': 2, 'clf__n_estimators': 200}",0.8613861386138614,0.849874686716792,0.8564102564102565,0.850992727887705
-SVM,Test,"{'clf__C': 1, 'clf__gamma': 'scale', 'clf__kernel': 'rbf'}",0.8514851485148515,0.8550770308123249,0.8591575091575091,0.8479844777065019
-XGBoost,Test,"{'clf__colsample_bytree': 0.8, 'clf__learning_rate': 0.1, 'clf__max_depth': 5, 'clf__n_estimators': 200, 'clf__subsample': 0.8}",0.8514851485148515,0.8409961685823756,0.846886446886447,0.8423748231012871
-NeuralNet,Test,"{'clf__activation': 'logistic', 'clf__alpha': 0.01, 'clf__batch_size': 32, 'clf__hidden_layer_sizes': (128, 64, 32), 'clf__learning_rate_init': 0.001, 'clf__max_iter': 600, 'clf__n_iter_no_change': 10}",0.8415841584158416,0.8340399222752164,0.8373626373626374,0.8339920948616601

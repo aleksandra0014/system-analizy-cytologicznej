@@ -71,7 +71,8 @@ VALIDATORS = {
                     "slide_summary_text": {"bsonType": ["string","null"]},
                     "bbox_gridfs_name": {"bsonType": ["string","null"]},
                     "bbox_url": {"bsonType": ["string","null"]},
-                    "add_info": {"bsonType": ["string","null"]}
+                    "add_info": {"bsonType": ["string","null"]},
+                    "probability": {"bsonType": ["object","null"]}
                 }
             }
         }
@@ -199,7 +200,6 @@ async def disconnect() -> None:
         client.close()
 
 async def ensure_collections():
-    """Tworzy/aktualizuje kolekcje z walidatorami i indeksami (tryb sync – administracyjny)."""
     sync = SyncMongoClient(MONGO_URI)[MONGO_DB]
 
     for cname, cfg in VALIDATORS.items():

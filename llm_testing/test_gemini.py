@@ -5,6 +5,9 @@ from string import Template
 from pathlib import Path
 import numpy as np
 from google import genai
+import os
+import base64
+import requests
 
 
 def to_builtin(obj):
@@ -103,9 +106,6 @@ def analyze_with_gemini(image_path, features, predictions, probs, api_key, model
     except Exception as e:
         raise RuntimeError(f"Gemini generate_content failed: {e}") from e
     
-import os
-import base64
-import requests
 
 def analyze_with_ollama(
     image_path: str,
@@ -163,12 +163,12 @@ def analyze_with_ollama(
         ],
         "stream": stream,
         "options": {
-        "num_predict": 2048,      # ↑ główny suwak długości
-        "num_ctx": 8192,          # zależne od modelu
+        "num_predict": 2048,      
+        "num_ctx": 8192,         
         "temperature": 0.7,
         "top_p": 0.9,
         "top_k": 40,
-        "repeat_penalty": 1.05,   # delikatnie przeciw powtórkom
+        "repeat_penalty": 1.05,   #
         "repeat_last_n": 256
     }
     }
@@ -200,14 +200,12 @@ def analyze_with_ollama(
                             pass
             return "".join(chunks)
 
-    # tryb bez streamu: zwykły JSON (z fallbackiem na NDJSON, jeśli serwer jednak zastrumieniuje)
     r = requests.post(url, json=payload)
     r.raise_for_status()
     try:
         data = r.json()
         return (data.get("message") or {}).get("content") or data.get("response")
     except ValueError:
-        # fallback: spróbuj sparsować ostatnią poprawną linię NDJSON
         last = None
         for ln in r.text.splitlines():
             ln = ln.strip()

@@ -12,6 +12,7 @@ slide_summary_text?: string;
 overall_class?: string | number;
 add_info?: string | null;
 cells_explanations?: Record<string, string | { explanation?: string }>;
+probability?: Record<string, number>;
 };
 
 

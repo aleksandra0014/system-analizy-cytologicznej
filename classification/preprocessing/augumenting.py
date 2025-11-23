@@ -25,7 +25,6 @@ if __name__ == "__main__":
 
     input_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\train"      
     output_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\train"      
-    num_augments = 2 
 
     for cls_name in os.listdir(input_root):
         if cls_name == 'HSIL':

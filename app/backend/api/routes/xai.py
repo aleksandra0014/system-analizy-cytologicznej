@@ -88,7 +88,6 @@ async def gradcam(request: Request, payload: GradcamIn, user=Depends(get_current
     if img_bgr is None:
         raise HTTPException(status_code=500, detail="Cannot decode image")
 
-    # zapis tymczasowy aby użyć Twojej funkcji gradcam_on_image
     import tempfile as _tf, os as _os2
     fd, tmp_path = _tf.mkstemp(suffix=".png")
     _os2.close(fd)

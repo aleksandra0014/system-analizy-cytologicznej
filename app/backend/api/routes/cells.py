@@ -60,6 +60,7 @@ async def get_slide(slajd_uid: str, request: Request, user=Depends(get_current_d
         "crop_gridfs_names": crop_gridfs_names,
         "add_info": slide.get("add_info"),
         "cells_explanations": cells_explanations, 
+        "probability": slide.get("probability")
     })
 
 @router.patch("/slide/{slajd_uid}/add-info")

@@ -73,7 +73,14 @@ async def process_image(
     else: 
         response = analyze_with_ollama(
                     bbox_image_path, features_list, predict_fused, probs_list, pred, probability, model='qwen2.5vl:7b', stream=False,
-                )
+                ) #llama3.2-vision
+        
+    prob_dict = None
+    if probability is not None:
+        prob_dict = {
+            _CLASS_ORDER[i]: float(probability[i]) 
+            for i in range(len(probability))
+        }
     now = datetime.datetime.utcnow()
     pacjent_uid = pacjent_id or "UNKNOWN"
 
@@ -97,6 +104,7 @@ async def process_image(
         "bbox_gridfs_name": bbox_name,
         "bbox_url": bbox_url,
         "add_info": None,
+        "probability": prob_dict,
     }
     await mongo.db[mongo.COLL["slajdy"]].insert_one(slide_doc)
 
@@ -239,4 +247,5 @@ async def process_image(
         "response_data": response_data.get("cells") if isinstance(response_data, dict) else None,
         "response": response,
         "cells_explanations": cells_explanations,
+        "probability": prob_dict,
     })

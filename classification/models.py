@@ -235,9 +235,8 @@ class CNNClassifier(nn.Module):
             nn.Dropout(0.3)
         )
 
-        # Dynamiczne wyliczenie rozmiaru wejścia do warstwy liniowej
         with torch.no_grad():
-            dummy_input = torch.zeros(1, 3, *input_size)  # old version for RGB
+            dummy_input = torch.zeros(1, 3, *input_size)  
             dummy_output = self.features(dummy_input)
             flatten_size = dummy_output.view(1, -1).size(1)
 
@@ -313,7 +312,6 @@ def run_gridsearch_kfold(
             train_subset = Subset(dataset, train_idx)
             val_subset = Subset(dataset, val_idx)
 
-            # Compute class counts only from training set
             train_targets = [targets[i] for i in train_idx]
             class_counts = Counter(train_targets)
 
@@ -331,7 +329,6 @@ def run_gridsearch_kfold(
             model.train(train_loader, val_loader, num_epochs=num_epochs)
             acc = model.evaluate(val_loader)
 
-            # F1-score evaluation
             model.model.eval()
             all_preds, all_labels = [], []
             with torch.no_grad():
@@ -359,7 +356,6 @@ def run_gridsearch_kfold(
 
         print(f"✅ mean acc: {result['mean_accuracy']:.2f} | F1: {result['mean_f1']:.4f}")
 
-    # Save results to CSV
     df = pd.DataFrame(results)
     df.to_csv(output_csv, index=False)
     print(f"\n📄 Results saved to: {output_csv}")

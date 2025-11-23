@@ -291,6 +291,40 @@ export default function ResultsArea({
             </CardContent>
           </Card>
 
+          {results.probability && Object.keys(results.probability).length > 0 && (
+            <Card className="backdrop-blur-lg bg-white/95 border-blue-100 shadow-md">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-blue-600" />
+                  Class Probabilities
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {Object.entries(results.probability)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .map(([cls, prob]) => {
+                    const percentage = ((prob as number) * 100).toFixed(1);
+                    return (
+                      <div key={cls} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getClassColor(cls)}`}>
+                            {cls}
+                          </span>
+                          <span className="font-semibold text-gray-700">{percentage}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shrink-0 backdrop-blur-lg bg-white/95 border-blue-100 shadow-md">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-gray-800 flex items-center gap-2">

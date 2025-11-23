@@ -14,13 +14,12 @@ class CellNucleusDataset(Dataset):
         self.mask_dir = mask_dir
         self.allowed_exts = tuple(e.lower() for e in allowed_mask_exts)
 
-        # osobne transformaty: dla masek używamy NEAREST (bez rozmycia)
         self.img_tf = transform or T.Compose([
             T.Resize((256, 256)), T.ToTensor()
         ])
         self.mask_tf = T.Compose([
             T.Resize((256, 256), interpolation=InterpolationMode.NEAREST),
-            T.ToTensor()  # -> [0,1] float
+            T.ToTensor()  
         ])
 
         self.valid_filenames = []
@@ -69,7 +68,7 @@ class CellNucleusDataset(Dataset):
         cell_mask = (cell_mask > 0.0).float()
         nucleus_mask = (nucleus_mask > 0.0).float()
 
-        mask = torch.stack([cell_mask, nucleus_mask], dim=0)  # (2,H,W)
+        mask = torch.stack([cell_mask, nucleus_mask], dim=0) 
         return image, mask
 
 
