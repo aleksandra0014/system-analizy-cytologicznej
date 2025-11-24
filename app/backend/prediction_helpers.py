@@ -50,8 +50,7 @@ UNET_MODEL_PATH = os.getenv("UNET_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documen
 THRESHOLD_NUCLEI = float(os.getenv("THRESHOLD_NUCLEI", 0.7))
 THRESHOLD_CELLS = float(os.getenv("THRESHOLD_CELLS", 0.3))
 YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt")
-ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_LightGBM3.pkl")
-FUSED_MODEL_PATH = os.getenv("FUSED_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\joined\model_probs_1410_SVM2.pkl")
+ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_RandomForest_311.pkl")
 API_KEY = os.getenv("API_KEY", os.getenv("api_key", ''))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,8 +64,8 @@ yolo = YOLO(YOLO_MODEL_PATH)
 ml_model = joblib.load(ML_MODEL_PATH)
 label_encoder = ml_model['label_encoder']
 
-fused_model = joblib.load(FUSED_MODEL_PATH)
-label_encode_fused = fused_model['label_encoder']
+# fused_model = joblib.load(FUSED_MODEL_PATH)
+# label_encode_fused = fused_model['label_encoder']
 
 cnn_classifier = CytologyClassifier(num_classes=len(CLASS_NAMES), architecture=ARCHITECTURE)
 cnn_classifier.load(CNN_MODEL_PATH)

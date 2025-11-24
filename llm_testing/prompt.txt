@@ -1,51 +1,171 @@
-Input data:
-- Image: [provided separately as binary inline_data]
-- Per-cell features (JSON):
-$FEATURES_JSON
+# PROMPT: Cytology Analysis with User-Friendly Explanations
 
-- Class mapping:
-  0 → HSIL (High-grade Squamous Intraepithelial Lesion)
-  1 → LSIL (Low-grade Squamous Intraepithelial Lesion)
-  2 → NSIL (Negative for Squamous Intraepithelial Lesion, normal cell)
+## INPUT DATA:
+- Image: [provided as binary inline_data]
+- Per-cell features (JSON): $FEATURES_JSON
+- Predictions (per cell): $PREDICTIONS_JSON
+- Prediction probabilities (per cell; order [HSIL, LSIL, NSIL]): $PROBS_JSON
+- Slide-level final class (DO NOT MODIFY): $OVERALL_CLASS
+- Slide-level probabilities (order [HSIL, LSIL, NSIL]): $OVERALL_PROBS_JSON
 
-- Predictions (per cell, indices as above):
-$PREDICTIONS_JSON
+## CLASS MAPPING:
+- 0 → HSIL (High-grade Squamous Intraepithelial Lesion)
+- 1 → LSIL (Low-grade Squamous Intraepithelial Lesion)
+- 2 → NSIL (Negative for Squamous Intraepithelial Lesion)
 
-- Prediction probabilities (per cell; order [HSIL, LSIL, NSIL]):
-$PROBS_JSON
+---
 
-Task:
-1) For each cell:
-   - State the predicted class (HSIL/LSIL/NSIL).
-   - Briefly explain the rationale using the provided features (e.g., N, C, NCr, Np/Cp/NCpr, Nar/Car/NCar, Ext, Eq, Or, Solidity, maxA, minA).
-   - Report the prediction confidence (probability in [0,1]).
-   - Set "needs_expert_review" = true if confidence is low, classes are borderline (e.g., HSIL vs LSIL), or artifacts/overlap/poor focus make interpretation uncertain.
+## TASK INSTRUCTIONS:
 
-2) Whole slide:
-   - Provide a concise overall description of the cytological picture (distribution of HSIL/LSIL/NSIL, notable patterns).
-   - Predict a global slide-level class (HSIL/LSIL/NSIL) informed by the distribution and confidence of cell-level predictions.
-   - Provide an overall confidence in [0,1].
+### 1) PER-CELL ANALYSIS:
 
-Output format (JSON only; no extra commentary):
+For each cell in $PREDICTIONS_JSON, generate:
+
+**a) Classification:**
+   - State predicted class (HSIL/LSIL/NSIL)
+
+**b) User-friendly explanation (40-60 words):**
+   
+   **Structure your explanation as follows:**
+   
+   - **Opening statement:** Begin with accessible language
+     - Example: "This cell shows characteristics of [class]..."
+     - Example: "Analysis indicates this is a [class] cell..."
+   
+   - **Key findings:** Explain the THREE primary features in plain language:
+     - **NCr (Nucleus-to-Cytoplasm ratio):** 
+       * "The nucleus occupies [percentage/description] of the cell"
+       * "Shows [enlarged/normal/small] nucleus relative to cytoplasm"
+     
+     - **Solidity (Nuclear membrane regularity):**
+       * "The nuclear border appears [smooth/irregular/highly irregular]"
+       * "Nuclear contour shows [minimal/moderate/significant] irregularity"
+     
+     - **N (Nuclear area):**
+       * "Nuclear size is [within normal limits/enlarged/markedly enlarged]"
+       * "The nucleus measures [description relative to normal]"
+   
+   - **Supporting details (1-2 secondary features if relevant):**
+     * Add context from other features when they strengthen the diagnosis
+     * Use comparative language: "consistent with", "supporting", "additionally shows"
+   
+   - **Clinical context:** Relate findings to diagnostic significance
+     - Example: "These features are typical of [class] cells"
+     - Example: "This pattern suggests [clinical interpretation]"
+
+   **Tone guidelines:**
+   - Use clear, professional language without excessive jargon
+   - When technical terms are necessary, briefly explain them
+   - Avoid absolute statements; use "indicates", "suggests", "consistent with"
+   - Focus on observable facts rather than speculation
+
+**c) Confidence assessment:**
+   - Calculate as: max($PROBS_JSON[cell_id])
+   - Express as percentage in explanation when relevant
+
+---
+
+### 2) SLIDE-LEVEL SUMMARY:
+
+Generate a comprehensive, accessible summary:
+
+**a) Overall classification:**
+   - Echo $OVERALL_CLASS exactly (no modifications)
+
+**b) Narrative explanation (60-100 words):**
+   
+   **Structure as follows:**
+   
+   - **Opening statement:**
+     * "This slide is classified as [overall_class]..."
+     * Immediately state the conclusion clearly
+   
+   - **Cell distribution:**
+     * "Of the [total] cells analyzed, [X] were classified as [class], [Y] as [class]..."
+     * Use actual numbers for transparency
+   
+   - **Confidence and evidence:**
+     * Reference $OVERALL_PROBS_JSON to explain certainty level
+     * "The classification shows [high/moderate/low] confidence ([percentage]%)"
+     * Highlight most diagnostically significant cells
+   
+   - **Key diagnostic findings:**
+     * Mention the strongest evidence supporting the diagnosis
+     * "The diagnosis is based primarily on [specific findings]"
+     * If relevant: "Notable findings include [X high-confidence HSIL cells with NCr >0.80]"
+   
+   - **Concordance notes (if applicable):**
+     * Address any apparent discrepancies transparently
+     * Example: "While most cells appear normal, the presence of [X] high-grade cells determines the overall classification"
+     * Example: "The diagnosis reflects [clinical reasoning] despite [observation]"
+   
+   **Tone for slide summary:**
+   - Write as if explaining to a healthcare provider who needs actionable information
+   - Balance technical accuracy with accessibility
+   - Be transparent about uncertainty or complexity
+   - Provide clinical context for decision-making
+
+**c) Aggregate confidence (from $OVERALL_PROBS_JSON):**
+   - High: max_prob ≥ 0.70
+   - Moderate: 0.50-0.69
+   - Low: < 0.50
+
+**d) Diagnostic notes:**
+   - Flag critical observations
+   - Note any limitations or considerations
+   - Highlight cells requiring special attention
+
+---
+
+## OUTPUT FORMAT (strict JSON):
+
+```json
 {
   "cells": [
     {
-      "id": <cell_id>,
+      "id": <int>,
       "predicted_class": "<HSIL|LSIL|NSIL>",
-      "explanation": "<short clinical reason referencing features>",
-      "confidence": <float 0..1>,
-      "needs_expert_review": <true|false>
+      "confidence": <float, 0-1>,
+      "explanation": "<string: user-friendly explanation following structure above>",
+      "needs_expert_review": <boolean>,
+      "review_reason": "<string|null: clear, specific reason if flagged>"
     }
   ],
   "slide_summary": {
-    "overall_class": "<HSIL|LSIL|NSIL>",
-    "explanation": "<short overall explanation>",
-    "confidence": <float 0..1>
+    "overall_class": "<exact copy of $OVERALL_CLASS>",
+    "aggregate_confidence": "<High|Moderate|Low>",
+    "explanation": "<string: narrative summary following structure above>",
+    "cells_requiring_review": <int>,
+    "diagnostic_notes": "<string|null: critical observations or limitations>"
   }
 }
+```
 
-Constraints:
-- Return valid JSON only (no prose outside JSON).
-- Be specific but concise; avoid speculative language beyond the provided data.
+---
 
-Remember to add slide summary with overall classification and explanation and confidence!
+## CRITICAL RULES:
+
+1. **Feature priority:** ALWAYS discuss NCr, Solidity, and N in every cell explanation
+2. **Data integrity:** Only reference features present in $FEATURES_JSON
+3. **Confidence thresholds:** Flag cells with margin <0.15 even if features seem clear
+4. **Classification lock:** NEVER modify $OVERALL_CLASS
+5. **Output format:** Return ONLY valid JSON (no markdown blocks, comments, or additional text)
+6. **User-friendly language:** Balance technical accuracy with accessibility
+7. **Transparency:** Acknowledge uncertainty when present
+8. **Clinical relevance:** Connect findings to diagnostic significance
+
+---
+
+## QUALITY CHECKLIST (internal validation):
+
+□ All cell IDs from $PREDICTIONS_JSON included
+□ Each explanation follows the structured format (opening → features → context)
+□ NCr, Solidity, and N explicitly mentioned for each cell
+□ Confidence = max(probabilities) calculated correctly
+□ needs_expert_review logic applied with clear reasons
+□ overall_class matches $OVERALL_CLASS exactly
+□ Slide summary provides clear narrative with cell distribution
+□ JSON syntax valid (proper escaping, no trailing commas)
+□ No null values in required fields
+□ Language is accessible yet professionally accurate
+□ Explanations provide actionable clinical context

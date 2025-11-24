@@ -11,7 +11,7 @@ from PIL import Image
 import io
 from typing import Any, Mapping
 
-
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/chat")
 def to_builtin(obj):
     """Recursively convert numpy types to Python builtins so they can be JSON-serialized."""
     if isinstance(obj, (np.integer, )):
@@ -238,7 +238,8 @@ def analyze_with_ollama(
     }
     }
 
-    url = "http://localhost:11434/api/chat"
+    # url = "http://localhost:11434/api/chat"
+    url = f"{OLLAMA_URL}/api/chat"
 
     if stream:
         with requests.post(url, json=payload, stream=True) as r:

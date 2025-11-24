@@ -10,9 +10,12 @@ ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\i
 model_class = joblib.load(ML_MODEL_PATH)
 label_encoder = model_class["label_encoder"]
 
-df1 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_train_new_unet.csv')
-df2 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_val_new_unet.csv')
-df_test = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_test_new_unet.csv')
+# df1 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_train_new_unet.csv')
+# df2 = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_val_new_unet.csv')
+# df_test = pd.read_csv(r'C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_single_cropped3\features_test_new_unet.csv')
+df1 = pd.read_csv('/app/data/features_train_new_unet.csv')
+df2 = pd.read_csv('/app/data/features_val_new_unet.csv')
+df_test = pd.read_csv('/app/data/features_test_new_unet.csv')
 df_train = pd.concat([df1, df2], ignore_index=True)
 
 TARGET = "class"

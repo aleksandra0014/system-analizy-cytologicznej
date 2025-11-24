@@ -57,10 +57,12 @@ export default function App() {
   const [savingAddInfo, setSavingAddInfo] = useState(false);
   const [saveAddInfoMsg, setSaveAddInfoMsg] = useState<string | null>(null);
 
+  const BASE_API_URL = import.meta.env.VITE_API_URL;
+
   // auth helpers
   const checkMe = async () => {
     try {
-      const r = await api("http://localhost:8000/auth/me");
+      const r = await api(`${BASE_API_URL}/auth/me`);
       if (r.ok) {
         setUser(await r.json());
         setMode("home");
@@ -77,7 +79,7 @@ export default function App() {
 
   const doLogin = async () => {
     setAuthErr(null);
-    const r = await fetch("http://localhost:8000/auth/login", {
+    const r = await fetch(`${BASE_API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -92,7 +94,7 @@ export default function App() {
   };
 
   const doLogout = async () => {
-    await api("http://localhost:8000/auth/logout", { method: "POST" });
+    await api(`${BASE_API_URL}/auth/logout`, { method: "POST" });
     setUser(null);
     setMode("login");
   };
@@ -146,7 +148,7 @@ export default function App() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const url = `http://localhost:8000/process-image/?pacjent_id=${encodeURIComponent(patientId || "UNKNOWN")}`;
+      const url = `${BASE_API_URL}/process-image/?pacjent_id=${encodeURIComponent(patientId || "UNKNOWN")}`;
 
       const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
       if (!response.ok) {
@@ -180,7 +182,7 @@ export default function App() {
         setSlides([]);
         setSelectedPatient("");
         setSelectedSlide("");
-        const resp = await api("http://localhost:8000/patients");
+        const resp = await api(`${BASE_API_URL}/patients`);
         if (!resp.ok) {
           const txt = await resp.text();
           throw new Error(txt || `Failed to load patients (${resp.status})`);
@@ -197,7 +199,7 @@ export default function App() {
     if (!uid) return;
     try {
       setErrorMsg(null);
-      const resp = await api(`http://localhost:8000/patient/${encodeURIComponent(uid)}/slides`);
+      const resp = await api(`${BASE_API_URL}/patient/${encodeURIComponent(uid)}/slides`);
       if (!resp.ok) {
         const txt = await resp.text();
         throw new Error(txt || `Failed to load slides (${resp.status})`);
@@ -219,7 +221,13 @@ export default function App() {
       setShowDetails(false);
       setAddInfoDraft("");
 
-      const resp = await api(`http://localhost:8000/slide/${encodeURIComponent(selectedSlide.trim())}`);
+      // Przykład użycia w Twoim pliku API
+      const BASE_API_URL = import.meta.env.VITE_API_URL;
+
+      // Zrób zapytanie, używając zmiennej środowiskowej
+      const resp = await api(`${BASE_API_URL}/slide/${encodeURIComponent(selectedSlide.trim())}`);
+
+      // const resp = await api(`http://localhost:8000/slide/${encodeURIComponent(selectedSlide.trim())}`);
       if (!resp.ok) {
         const txt = await resp.text();
         throw new Error(txt || `Failed to load slide (${resp.status})`);
@@ -244,7 +252,7 @@ export default function App() {
       setSavingAddInfo(true);
       const prev = results?.add_info ?? "";
       setResults((p) => (p ? { ...p, add_info: addInfoDraft } : p));
-      const r = await fetch(`http://localhost:8000/slide/${encodeURIComponent(sid)}/add-info`, {
+      const r = await fetch(`${BASE_API_URL}/slide/${encodeURIComponent(sid)}/add-info`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -296,7 +304,7 @@ export default function App() {
 
     try {
       const body = cropGridName ? { crop_gridfs_name: cropGridName } : { image_url: cropUrl };
-      const resp = await fetch("http://localhost:8000/gradcam/", {
+      const resp = await fetch(`${BASE_API_URL}/gradcam/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -332,7 +340,7 @@ export default function App() {
     setLimeErrorById((p) => { const q = { ...p }; delete q[cellId]; return q; });
 
     try {
-      const resp = await fetch("http://localhost:8000/lime/", {
+      const resp = await fetch(`${BASE_API_URL}/lime/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -355,7 +363,7 @@ export default function App() {
   const correctCellClass = async (cellId: string, newClass: "HSIL" | "LSIL" | "NSIL") => {
     const komorkaUid = results?.slide_uid ? `${results.slide_uid}:${cellId}` : selectedSlide ? `${selectedSlide}:${cellId}` : null;
     if (!komorkaUid) { console.error("Brak slide_uid do korekcji klasy"); return; }
-    const res = await fetch(`http://localhost:8000/cell/${encodeURIComponent(komorkaUid)}/correct-class`, {
+    const res = await fetch(`${BASE_API_URL}/cell/${encodeURIComponent(komorkaUid)}/correct-class`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

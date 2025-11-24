@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.pyc
+*.swp
+.git
+.gitignore
+.DS_Store
+# Jeśli używasz katalogu 'data' do modeli i jest duży
+data/
+data_yolo/
+*.pth
+*.pkl

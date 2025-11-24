@@ -50,6 +50,7 @@ export default function ResultsArea({
   const [shareEmail, setShareEmail] = useState("");
   const [shareLoading, setShareLoading] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const BASE_API_URL = import.meta.env.VITE_API_URL;
 
   // zgodność: backend może zwracać slide_uid albo slajd_uid
   const slideUid = useMemo(
@@ -65,11 +66,11 @@ export default function ResultsArea({
 
     setShareLoading(true);
     setShareMsg(null);
-
+    
     try {
       // jeśli w dev masz proxy w Vite -> użyj ścieżki względnej jak poniżej
       const res = await fetch(
-        `http://localhost:8000/slide/${encodeURIComponent(slideUid)}/share-by-email?email=${encodeURIComponent(
+        `${BASE_API_URL}/slide/${encodeURIComponent(slideUid)}/share-by-email?email=${encodeURIComponent(
           shareEmail
         )}`,
         { method: "POST" , credentials: "include"} // bez nagłówków/auth

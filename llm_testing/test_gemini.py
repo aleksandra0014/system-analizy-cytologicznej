@@ -8,6 +8,7 @@ from google import genai
 import os
 import base64
 import requests
+from typing import Any, Mapping
 
 
 def to_builtin(obj):
@@ -31,18 +32,53 @@ def guess_mime(path: str) -> str:
 def load_text(path: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
+    
+_CLASS_MAP = {0: "HSIL", 1: "LSIL", 2: "NSIL"}
 
-def render_prompt(template_text: str, *, features, predictions, probs) -> str:
-    """Render the prompt template with JSON-serialized data using string.Template ($PLACEHOLDER)."""
+def _normalize_overall_class(value: Any) -> str:
+    """Przyjmij int 0/1/2 lub str i zwróć etykietę HSIL/LSIL/NSIL."""
+    if isinstance(value, int):
+        if value not in _CLASS_MAP:
+            raise ValueError(f"Invalid overall_class index: {value}")
+        return _CLASS_MAP[value]
+    if isinstance(value, str):
+        v = value.strip().upper()
+        if v in {"HSIL", "LSIL", "NSIL"}:
+            return v
+        raise ValueError(f"Invalid overall_class label: {value!r}")
+    raise TypeError(f"overall_class must be int or str, got {type(value).__name__}")
+
+
+def render_prompt(
+    template_text: str,
+    *,
+    features: Mapping[str, Any],
+    predictions: Mapping[str, Any],
+    probs: Mapping[str, Any],
+    overall_class: Any,
+    overall_probs: Any,
+) -> str:
+    """
+    Renderuje template z placeholderami:
+      $FEATURES_JSON
+      $PREDICTIONS_JSON
+      $PROBS_JSON
+      $OVERALL_CLASS
+      $OVERALL_PROBS_JSON
+    """
     features_clean = to_builtin(features)
     preds_clean    = to_builtin(predictions)
     probs_clean    = to_builtin(probs)
+    overall_probs_clean = to_builtin(overall_probs)
+    overall_class_label = _normalize_overall_class(overall_class)
 
     tpl = Template(template_text)
     return tpl.substitute(
         FEATURES_JSON=json.dumps(features_clean, ensure_ascii=False, indent=2),
-        PREDICTIONS_JSON=json.dumps(preds_clean,    ensure_ascii=False, indent=2),
-        PROBS_JSON=json.dumps(probs_clean,          ensure_ascii=False, indent=2),
+        PREDICTIONS_JSON=json.dumps(preds_clean, ensure_ascii=False, indent=2),
+        PROBS_JSON=json.dumps(probs_clean, ensure_ascii=False, indent=2),
+        OVERALL_CLASS=overall_class_label,
+        OVERALL_PROBS_JSON=json.dumps(overall_probs_clean, ensure_ascii=False, indent=2),
     )
 
 BASE_DIR = Path(__file__).resolve().parent  
@@ -112,10 +148,12 @@ def analyze_with_ollama(
     features,
     predictions,
     probs,
+    oveall_class, 
+    overall_probs,
     model: str = "llava:latest",
     *,
     stream: bool = False, 
-    on_chunk=None, 
+    on_chunk=None,  
 ):
     """
     Buduje prompt z plików i wysyła go do modelu w Ollama (lokalnie).
@@ -135,7 +173,7 @@ def analyze_with_ollama(
 
     system_text = system_path.read_text(encoding="utf-8")
     template_text = prompt_template_path.read_text(encoding="utf-8")
-    prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs)
+    prompt_text   = render_prompt(template_text, features=features, predictions=predictions, probs=probs, overall_class=oveall_class, overall_probs=overall_probs)
 
     mime = guess_mime(image_path)
     if mime == "image/bmp":
@@ -163,7 +201,7 @@ def analyze_with_ollama(
         ],
         "stream": stream,
         "options": {
-        "num_predict": 2048,      
+        "num_predict": 10000,      
         "num_ctx": 8192,         
         "temperature": 0.7,
         "top_p": 0.9,
@@ -218,3 +256,4 @@ def analyze_with_ollama(
         if last:
             return (last.get("message") or {}).get("content") or last.get("response")
         raise RuntimeError("Nie udało się sparsować odpowiedzi Ollama (ani JSON, ani NDJSON).")
+

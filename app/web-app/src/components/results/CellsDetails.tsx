@@ -29,7 +29,7 @@ export default function CellsDetails(props: {
   const [correctedClasses, setCorrectedClasses] = useState<Record<string, string>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletedIds, setDeletedIds] = useState<Record<string, true>>({});
-
+  const BASE_API_URL = import.meta.env.VITE_API_URL;
   // Filtry: tylko HSIL / LSIL / NSIL
   type CellClass = "HSIL" | "LSIL" | "NSIL";
   type FilterKey = CellClass | "HSIL/LSIL_group";
@@ -59,7 +59,7 @@ export default function CellsDetails(props: {
     try {
       setDeletingId(cellId);
       const res = await fetch(
-        `http://localhost:8000/slide/${encodeURIComponent(slideUid)}/cell/${encodeURIComponent(cellId)}`,
+        `${BASE_API_URL}/slide/${encodeURIComponent(slideUid)}/cell/${encodeURIComponent(cellId)}`,
         { method: "DELETE", credentials: "include" }
       );
       if (!(res.ok || res.status === 204)) {

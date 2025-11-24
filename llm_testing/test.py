@@ -5,6 +5,9 @@ from ultralytics import YOLO
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
+from classification_slide.attention_models import AttentionMIL, predict_attention
+from test_gemini import analyze_with_ollama
+
 import torch
 import torch.nn.functional as F
 
@@ -19,47 +22,68 @@ import tempfile
 import os
 import joblib
 
-from segmentation.modelsUnet import UNet4Levels, preprocess_image, predict_masks
+from segmentation.modelsUnet import UNet4Levels, preprocess_image, predict_masks, UNet
 from segmentation.features import extract_features
 from classification.models import CytologyClassifier, predict_label
 
-from llm_testing.helpers import *  # nms_keep_largest_box, predict_gbm, predict_fused_func, predict_vgg_probs, predict_gbm_probs
+from app.backend.helpers import *  
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 warnings.filterwarnings("ignore")
 
 from dotenv import load_dotenv
-load_dotenv()
+from pathlib import Path
 
-unet_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet4_cell_nucleus_4_50_1310.pth"
-yolo_model_path = r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt'
-lightgbm_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_RandomForest_new_unet.pkl"
-rf_model_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\joined\model_probs_1410_SVM2.pkl"
+# Ensure we load the .env located in the backend folder (app/backend/.env)
+# using an absolute path so imports/run-from-root still pick it up.
+env_path = Path(__file__).resolve().parent / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=str(env_path))
+else:
+    # fallback to default behavior (looks in CWD and parents)
+    load_dotenv()
 
-CLASS_NAMES = ['HSIL', 'LSIL', 'NSIL']
-# vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\vgg16\32_0_0001_50_0608.pth'
-vgg_weights = r'C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\32_0_0001_50_0608.pth'
-ARCHITECTURE = 'resnet18'
+CLASS_NAMES = os.getenv("CLASS_NAMES", "HSIL,LSIL,NSIL").split(",")
+ARCHITECTURE = os.getenv("ARCHITECTURE", "resnet18")
+CNN_MODEL_PATH = os.getenv("CNN_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\16_0_0001_50_1110.pth")
+UNET_MODEL_PATH = os.getenv("UNET_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\unet\unet4_cell_nucleus_4_50_1310.pth")
+THRESHOLD_NUCLEI = float(os.getenv("THRESHOLD_NUCLEI", 0.7))
+THRESHOLD_CELLS = float(os.getenv("THRESHOLD_CELLS", 0.3))
+YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt")
+ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_RandomForest_311.pkl")
+FUSED_MODEL_PATH = os.getenv("FUSED_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\joined\model_probs_1410_SVM2.pkl")
 API_KEY = os.getenv("API_KEY", os.getenv("api_key", ''))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model_mil = AttentionMIL(
+    input_dim=3,    
+    hidden_dim=128,
+    num_classes=len(['HSIL', 'LSIL', 'NSIL']),
+    dropout=0.5
+)
+model_mil.load_state_dict(torch.load(r"C:\Users\aleks\OneDrive\Documents\inzynierka\best_attention_mil_model.pth", map_location=torch.device('cpu')))
 
 unet = UNet4Levels(in_channels=3, out_channels=2)
-unet.load_state_dict(torch.load(unet_model_path, map_location=device))
+unet.load_state_dict(torch.load(UNET_MODEL_PATH, map_location=device))
 unet.to(device).eval()
 
-yolo = YOLO(yolo_model_path)
+yolo = YOLO(YOLO_MODEL_PATH)
 
-gbm_model = joblib.load(lightgbm_model_path)
-label_encoder = gbm_model['label_encoder']
+ml_model = joblib.load(ML_MODEL_PATH)
+label_encoder = ml_model['label_encoder']
 
-rf_model = joblib.load(rf_model_path)
-rf_encoder = rf_model['label_encoder']
+# fused_model = joblib.load(FUSED_MODEL_PATH)
+# label_encode_fused = fused_model['label_encoder']
 
-vgg_clf = CytologyClassifier(num_classes=len(CLASS_NAMES), architecture=ARCHITECTURE)
-vgg_clf.load(vgg_weights)
-vgg_clf.model.eval().to(device)
+cnn_classifier = CytologyClassifier(num_classes=len(CLASS_NAMES), architecture=ARCHITECTURE)
+cnn_classifier.load(CNN_MODEL_PATH)
+cnn_classifier.model.eval().to(device)
 
+def fuse_func(p1, p2, eps=1e-9):
+    p = (p1 + eps) + (p2 + eps)
+    return p / p.sum()
 
 def get_info(image_path, show_image=True):
     image = Image.open(image_path).convert("RGB")
@@ -78,12 +102,13 @@ def get_info(image_path, show_image=True):
     cell_mask = (classes_tensor == 0) | (classes_tensor == 1) | (classes_tensor == 2)
     boxes = boxes_tensor[cell_mask].numpy().astype(int)
 
-    predict_classes_vgg = {}
-    predict_classes_gbm = {}
-    predict_fused = {}
+    predicted_classes_cnn = {}
+    predicted_classed_ml = {}
+    predicted_classed_fused = {}
     features_list = {}
     probs = {}
     crop_paths = {}
+    probs_list = []
 
     bbox_image_path = None
     if show_image:
@@ -129,12 +154,16 @@ def get_info(image_path, show_image=True):
             crop_paths[idx] = tmp_path
 
         if yolo_class == 1:
-            predict_classes_vgg[idx] = 'HSIL/LSIL_group'
-            predict_fused[idx] = 'HSIL/LSIL_group'
+            predicted_classes_cnn[idx] = 'HSIL/LSIL_group'
+            predicted_classed_fused[idx] = 'HSIL/LSIL_group'
+            probs_list.append([0.7, 0.3, 0])
+            probs[idx] = {
+            'fused': [0.7, 0.3, 0]
+            }
             continue
 
         _, tensor = preprocess_image(tmp_path)
-        masks = predict_masks(unet, tensor, device, threshold_nuclei=0.3, threshold_cell=0.7)
+        masks = predict_masks(unet, tensor, device, threshold_nuclei=THRESHOLD_NUCLEI, threshold_cell=THRESHOLD_CELLS)
         mask_nucleus = cv2.resize(masks[1], (crop.shape[1], crop.shape[0]))
         best_nucleus = select_best_nucleus(mask_nucleus, crop.shape[:2])
         mask_cell = cv2.resize(masks[0], (crop.shape[1], crop.shape[0])) * 255
@@ -151,50 +180,58 @@ def get_info(image_path, show_image=True):
             
         features_list[idx] = features
 
-        predict_class = predict_gbm(gbm_model['model'], label_encoder, features)
-        predict_classes_gbm[idx] = predict_class
+        predict_class_ml = predict_ml(ml_model['model'], label_encoder, features)
+        predicted_classed_ml[idx] = predict_class_ml
 
-        predict_class_vgg = predict_label(vgg_clf, crop)
-        predict_classes_vgg[idx] = predict_class_vgg[0]
+        predict_class_cnn = predict_label(cnn_classifier, crop)
+        predicted_classes_cnn[idx] = predict_class_cnn[0]
 
-        rf_predictions = predict_fused_func(rf_model['model'], rf_encoder, vgg_clf,   gbm_model['model'], unet, device, tmp_path)
-        predict_fused[idx] = rf_predictions
+        predicted_clas_fused = predict_fused_func_2(fuse_func, ml_model["model"], label_encoder, cnn_classifier, unet, device, tmp_path)
+        predicted_classed_fused[idx] = predicted_clas_fused
 
-        # probs_vgg = predict_vgg_probs(vgg_clf, tmp_path, device)
-        # probs_lg = predict_gbm_probs(gbm_model['model'], label_encoder, features)
-        probs_fused = predict_fused_func(
-            rf_model['model'], rf_encoder, vgg_clf, gbm_model['model'], unet, device, tmp_path, probs_output=True
-        )
+        probs_fused = predict_fused_func_2(fuse_func, ml_model["model"], label_encoder, cnn_classifier, unet, device, tmp_path, True)
+        
         probs[idx] = {
             'fused': probs_fused
         }
-
-    all_indices = set(predict_classes_vgg.keys()) | set(predict_classes_gbm.keys()) | set(predict_fused.keys())
+        probs_list.append(probs_fused)
+    
+    all_indices = set(predicted_classes_cnn.keys()) | set(predicted_classed_ml.keys()) | set(predicted_classed_fused.keys())
     rows = []
     for idx in sorted(all_indices):
         rows.append({
             "idx": idx,
-            "predict_vgg": predict_classes_vgg.get(idx, None),
-            "predict_gbm": predict_classes_gbm.get(idx, None),
-            "predict_fused": predict_fused.get(idx, None),
+            "predict_vgg": predicted_classes_cnn.get(idx, None),
+            "predict_gbm": predicted_classed_ml.get(idx, None),
+            "predicted_classed_fused": predicted_classed_fused.get(idx, None),
         })
 
     df_preds = pd.DataFrame(rows)
 
-    return features_list, predict_fused, probs, df_preds, bbox_image_path, crop_paths
+    return features_list, predicted_classed_fused, probs, probs_list, df_preds, bbox_image_path, crop_paths
+
 
 if __name__ == "__main__":
-    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\NSIL\pow 40\44d.bmp"
-    features_list, predict_fused, probs, df_preds, bbox_image_path, crop_paths = get_info(image_path, show_image=True)
-    print(features_list)
-    print(predict_fused)
-    print(probs)
+    image_path = r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 40\18b.bmp"
     start = datetime.datetime.now()
-    # response = analyze_with_gemini(bbox_image_path, features_list, predict_fused, probs,
-    #                                api_key=API_KEY)
-    #                                # model='llava:7b')
-    #                                 # model='qwen2.5vl:7b', stream=True)
-    # print(response)  
+    (features_list, predict_fused, probs, probs_list, df_preds, bbox_image_path, crop_paths) = get_info(image_path, show_image=True)
+    
+    _CLASS_ORDER = ["HSIL","LSIL","NSIL"]
+
+    pred, attn, probability = predict_attention(
+        model_mil,
+        probs_list,
+        'test',
+        torch.device("cpu"),
+        class_names=_CLASS_ORDER,
+        visualize=False
+    )
+
+    response = analyze_with_ollama(
+                    bbox_image_path, features_list, predict_fused, probs_list, pred, probability, model='qwen2.5vl:7b', stream=False,
+                ) #llama3.2-vision
+    print(response)  
     end = datetime.datetime.now()
     time = end - start
     print(time)
+    

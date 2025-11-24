@@ -17,7 +17,7 @@ model.train(
     translate=0.1,
     scale=0.5,
     fliplr=0.5,
-    name="2211", # name of the training run
+    name="16.0.001.augmentacja15_test22_adam", # name of the training run
     project="yolo_models/models",
     pretrained=True
 )

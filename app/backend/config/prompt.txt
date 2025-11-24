@@ -27,7 +27,6 @@ Task:
    - Briefly explain the rationale using the provided features (e.g., N, C, NCr, Np/Cp/NCpr, Nar/Car/NCar, Ext, Eq, Or, Solidity, maxA, minA).
    - Report the prediction confidence (probability in [0,1]).
    - Set "needs_expert_review" = true if:
-       • confidence is low (e.g., < 0.6), or
        • the top two class probabilities are close (margin < 0.15), suggesting borderline HSIL↔LSIL or LSIL↔NSIL, or
        • artifacts/overlap/poor focus implied by features make interpretation uncertain.
 
@@ -36,7 +35,6 @@ Task:
    - Provide a concise explanation that justifies this final class using:
        • the distribution and confidence of per-cell predictions, and
        • the slide-level probabilities in $OVERALL_PROBS_JSON.
-   - Set "confidence" to the probability of the provided overall class taken from $OVERALL_PROBS_JSON (value in [0,1]).
    - If per-cell evidence appears discordant with the provided overall_class, note this briefly in the explanation (e.g., "minority of high-confidence HSIL cells present").
 
 
@@ -47,14 +45,12 @@ Output format (JSON only; no extra commentary):
       "id": <cell_id>,
       "predicted_class": "<HSIL|LSIL|NSIL>",
       "explanation": "<short clinical reason referencing features>",
-      "confidence": <float 0..1>,
       "needs_expert_review": <true|false>
     }
   ],
   "slide_summary": {
     "overall_class": "<HSIL|LSIL|NSIL>",
     "explanation": "<short overall explanation leveraging per-cell evidence and $OVERALL_PROBS_JSON>",
-    "confidence": <float 0..1>
   }
 }
 
