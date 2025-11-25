@@ -24,7 +24,7 @@ $OVERALL_PROBS_JSON
 Task:
 1) For each cell:
    - State the predicted class (HSIL/LSIL/NSIL).
-   - Briefly explain the rationale using the provided features (e.g., N, C, NCr, Np/Cp/NCpr, Nar/Car/NCar, Ext, Eq, Or, Solidity, maxA, minA).
+   - Explain the rationale using the provided features (e.g., N, C, NCr, Np/Cp/NCpr, Nar/Car/NCar, Ext, Eq, Or, Solidity, maxA, minA).
    - Report the prediction confidence (probability in [0,1]).
    - Set "needs_expert_review" = true if:
        • the top two class probabilities are close (margin < 0.15), suggesting borderline HSIL↔LSIL or LSIL↔NSIL, or
@@ -36,7 +36,12 @@ Task:
        • the distribution and confidence of per-cell predictions, and
        • the slide-level probabilities in $OVERALL_PROBS_JSON.
    - If per-cell evidence appears discordant with the provided overall_class, note this briefly in the explanation (e.g., "minority of high-confidence HSIL cells present").
-
+    - Mention the strongest evidence supporting the diagnosis
+  Tone for slide summary:
+   - Write as if explaining to a healthcare provider who needs actionable information
+   - Balance technical accuracy with accessibility
+   - Be transparent about uncertainty or complexity
+   - Provide clinical context for decision-making
 
 Output format (JSON only; no extra commentary):
 {

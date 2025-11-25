@@ -6,7 +6,7 @@ def plot_confusion_matrix_greys(
     classes,
     normalize=True,
     title="Confusion Matrix",
-    cmap=plt.cm.Greys,
+    cmap=plt.cm.Blues,
     figsize=(6, 5),
     value_fmt=None
 ):
@@ -89,6 +89,6 @@ def plot_confusion_matrix_greys(
     return fig, ax
 
 plot_confusion_matrix_greys(
-    cm=np.array([[0.83, 0.17, 0.00],    
-                 [0.23, 0.62, 0.15],    
-                 [0.07, 0.07, 0.86]]), classes=['HSIL', 'LSIL', 'NSIL'])
+    cm=np.array([[0.92, 0.0, 0.97],    
+                 [0.0, 0.83, 0.03],    
+                 [0.08, 0.17, 0.0]]), classes=['cell', 'HSIL_group', 'background'],)

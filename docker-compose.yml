@@ -2,20 +2,14 @@ version: '3.8'
 
 services:
 
-  # --- Usługa Backend (FastAPI) ---
   backend:
-    # Używamy instrukcji build do budowania obrazu z Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
     container_name: cytology_backend
-    # Mapowanie portów: HOST:CONTAINER
-    # Aplikacja działa na porcie 8000 wewnątrz kontenera (zgodnie z Dockerfile)
     ports:
       - "8000:8000"
-    # Zmienne środowiskowe, które są potrzebne przez backend
     environment:
-      # Użyj nazwy usługi mongo z docker-compose jako hosta
       MONGO_URI: mongodb://mongo:27017
       MONGO_DB: lbc_db
       OLLAMA_URL: http://ollama:11434
@@ -24,15 +18,10 @@ services:
       YOLO_MODEL_PATH: /app/models/yolo.pt
       ML_MODEL_PATH: /app/models/best_model_RandomForest_311.pkl
       ATTENTION_MODEL: /app/models/best_attention_mil_model.pth
-      # Ustawienie portu, jeśli jest wymagane
       PORT: 8000 
-      # TUTAJ DODAJ INNE ZMIENNE ENV (np. ścieżki do modeli)
-      # MODEL_PATH: /app/data/models/model.pt
-    # Zależność od bazy danych
     depends_on:
       - mongo
       - ollama
-    # Możesz mapować ścieżki do modeli, jeśli są duże (VOLUMES)
     volumes:
       - ./models:/app/models
       - ./data_csv:/app/data
@@ -40,51 +29,38 @@ services:
   ollama:
     image: ollama/ollama 
     container_name: cytology_ollama
-    # Wystawienie portu jest opcjonalne, ale pozwala na użycie z hosta (np. 'ollama run')
     ports:
       - "11434:11434"
     volumes:
-      # Trwałe przechowywanie pobranych modeli LLM
       - ollama_data:/root/.ollama
       
     
 
-  # --- Usługa Bazy Danych (MongoDB) ---
   mongo:
     image: mongo:6.0
     container_name: cytology_mongo
     restart: always
-    # Ustawienie katalogu, w którym MongoDB będzie przechowywać dane
     volumes:
       - mongo_data:/data/db
     ports:
-      # Port 27017 jest standardem MongoDB, opcjonalne do mapowania na hosta
       - "27017:27017"
 
-  # --- Usługa Frontend (Opcjonalne: zakładam, że używasz Node.js/npm) ---
-  # Jeśli chcesz konteneryzować frontend (zalecane w produkcji)
+
   frontend:
-    # Zmieniamy instrukcję build na ścieżkę do katalogu frontendowego
     build:
       context: ./app/web-app
-      dockerfile: Dockerfile # Musisz utworzyć ten plik w app/web-app
+      dockerfile: Dockerfile 
     container_name: cytology_frontend_dev
     ports:
-      - "5173:5173" # Mapa portu dla 'npm run dev' lub zbudowanej aplikacji
+      - "5173:5173" 
     depends_on:
       - backend
     environment:
-      # 🔑 TA WARTOŚĆ JEST UŻYWANA, GDY KONTENER FRONTENDU SIĘ URUCHOMIA
       VITE_API_URL: http://localhost:8000
     volumes:
-      # Mapowanie kodu źródłowego: 
-      # ./app/web-app (na hoście) -> /app (w kontenerze)
       - ./app/web-app:/app
-      # Zapobieganie nadpisywaniu folderu node_modules z kontenera.
-      # Zapewnia to, że używane są pakiety zainstalowane w kontenerze.
       - /app/node_modules
 
-# Wolumeny do trwałego przechowywania danych MongoDB
 volumes:
   mongo_data:
   ollama_data:

@@ -45,7 +45,7 @@ For each cell in $PREDICTIONS_JSON, generate:
        * "Nuclear size is [within normal limits/enlarged/markedly enlarged]"
        * "The nucleus measures [description relative to normal]"
    
-   - **Supporting details (1-2 secondary features if relevant):**
+   - **Supporting details (alwaya add some other features):**
      * Add context from other features when they strengthen the diagnosis
      * Use comparative language: "consistent with", "supporting", "additionally shows"
    
@@ -158,6 +158,7 @@ Generate a comprehensive, accessible summary:
 
 ## QUALITY CHECKLIST (internal validation):
 
+MOST IMPORTANT: Remember to include the slide summary with the given overall classification, explanation, and confidence!
 □ All cell IDs from $PREDICTIONS_JSON included
 □ Each explanation follows the structured format (opening → features → context)
 □ NCr, Solidity, and N explicitly mentioned for each cell
@@ -169,3 +170,4 @@ Generate a comprehensive, accessible summary:
 □ No null values in required fields
 □ Language is accessible yet professionally accurate
 □ Explanations provide actionable clinical context
+

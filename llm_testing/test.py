@@ -231,6 +231,8 @@ if __name__ == "__main__":
                     bbox_image_path, features_list, predict_fused, probs_list, pred, probability, model='qwen2.5vl:7b', stream=False,
                 ) #llama3.2-vision
     print(response)  
+    with open("response.txt", "w", encoding="utf-8") as f:
+        f.write(response)
     end = datetime.datetime.now()
     time = end - start
     print(time)

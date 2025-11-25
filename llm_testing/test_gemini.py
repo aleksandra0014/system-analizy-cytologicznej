@@ -201,7 +201,7 @@ def analyze_with_ollama(
         ],
         "stream": stream,
         "options": {
-        "num_predict": 10000,      
+        "num_predict": 20000,      
         "num_ctx": 8192,         
         "temperature": 0.7,
         "top_p": 0.9,

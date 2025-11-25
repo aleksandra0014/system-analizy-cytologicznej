@@ -14,8 +14,8 @@ EPS = 1e-9
 
 # NOWE: Progi confidence dla każdej klasy
 CLASS_CONF_THRESHOLDS = {
-    0: 0.25,  # cell
-    1: 0.6    # HSIL_group
+    0: 0.5,  # cell
+    1: 0.5    # HSIL_group
 }
 
 from typing import List, Tuple, Optional, Any, Dict
@@ -342,7 +342,7 @@ def evaluate_multiclass_detector_with_pr(
             "TP": int(TP), "FP": int(FP), "FN": int(FN),
             "precision": P, "recall": R, "f1": F1,
             "ap": pr_data[k]["ap"],
-            "conf_threshold": conf_thresholds.get(k, 0.25)
+            "conf_threshold": conf_thresholds.get(k, 0.5)
         })
 
     macro_f1 = float(np.mean([x["f1"] for x in per_class])) if per_class else 0.0
@@ -416,13 +416,19 @@ def plot_pr_curve(pr_data: Dict[int, Dict], class_names: List[str]) -> Any:
 # ============== MAIN EXECUTION ==============
 
 models_paths = [
-    r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.augmentacja25_test\weights\best.pt',
+    r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.augmentacja15_test22_adam\weights\best.pt',
 ]
 
 test_folders = [
     r"C:\Users\aleks\OneDrive\Documents\inzynierka\data_yolo\syntetic_and_mine_test\images",
     r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_mendeley\Low squamous intra-epithelial lesion",
     r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\data_mendeley\Negative for Intraepithelial malignancy",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 40",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 40",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\NSIL\pow 40",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\HSIL\pow 10",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\LSIL\pow 10",
+    r"C:\Users\aleks\OneDrive\Documents\inzynierka\data\LBC_slides\NSIL\pow 10",
 ]
 
 metric_folder = r'data_yolo\syntetic_and_mine_test'
