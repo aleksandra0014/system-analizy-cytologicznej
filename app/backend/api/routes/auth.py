@@ -10,41 +10,41 @@ from app.backend.api.deps import get_current_doctor
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class RegisterIn(BaseModel):
-    imie: str
-    nazwisko: str
+    name: str
+    surname: str
     email: str
-    rola: str = "doctor"
-    haslo: str = Field(min_length=8)
+    role: str = "doctor"
+    password: str = Field(min_length=8)
 
 class LoginIn(BaseModel):
     email: str
-    haslo: str
+    password: str
 
 @router.post("/register")
 async def register_user(payload: RegisterIn):
-    exists = await mongo.db[mongo.COLL["lekarze"]].find_one({"email": payload.email})
+    exists = await mongo.db[mongo.COLL["doctors"]].find_one({"email": payload.email})
     if exists:
         raise HTTPException(status_code=409, detail="Email already registered")
     now = datetime.datetime.utcnow()
     doc = {
-        "lekarz_uid": uuid.uuid4().hex,
-        "imie": payload.imie,
-        "nazwisko": payload.nazwisko,
+        "doctor_uid": uuid.uuid4().hex,
+        "name": payload.name,
+        "surname": payload.surname,
         "email": payload.email,
-        "rola": payload.rola,
-        "aktywny": True,
-        "password_hash": hash_password(payload.haslo),
+        "role": payload.role,
+        "active": True,
+        "password_hash": hash_password(payload.password),
         "created_at": now,
     }
-    await mongo.db[mongo.COLL["lekarze"]].insert_one(doc)
+    await mongo.db[mongo.COLL["doctors"]].insert_one(doc)
     return {"ok": True}
 
 @router.post("/login")
 async def login(payload: LoginIn, response: Response):
-    user = await mongo.db[mongo.COLL["lekarze"]].find_one({"email": payload.email})
-    if not user or not user.get("password_hash") or not verify_password(payload.haslo, user["password_hash"]):
+    user = await mongo.db[mongo.COLL["doctors"]].find_one({"email": payload.email})
+    if not user or not user.get("password_hash") or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_token(user["email"], user.get("rola", "doctor"))
+    token = create_token(user["email"], user.get("role", "doctor"))
     response.set_cookie(
         key=settings.COOKIE_NAME,
         value=token,

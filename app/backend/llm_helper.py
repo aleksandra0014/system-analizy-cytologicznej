@@ -228,7 +228,7 @@ def analyze_with_ollama(
         ],
         "stream": stream,
         "options": {
-        "num_predict": 2048,      
+        "num_predict": 8000,      
         "num_ctx": 8192,          
         "temperature": temperature,
         "top_p": top_p,
@@ -238,8 +238,8 @@ def analyze_with_ollama(
     }
     }
 
-    # url = "http://localhost:11434/api/chat"
-    url = f"{OLLAMA_URL}/api/chat"
+    url = "http://localhost:11434/api/chat"
+    # url = f"{OLLAMA_URL}/api/chat"
 
     if stream:
         with requests.post(url, json=payload, stream=True) as r:

@@ -1,6 +1,6 @@
 export type Results = {
 slide_uid?: string;
-pacjent_uid?: string;
+patient_uid?: string;
 bbox_public_url?: string;
 crop_public_urls?: Record<string, string>;
 crop_gridfs_names?: Record<string, string>;
@@ -24,9 +24,9 @@ predicted_class: string;
 };
 
 
-export type Patient = { pacjent_uid: string; created_at?: string | null };
+export type Patient = { patient_uid: string; created_at?: string | null };
 export type SlideItem = {
-slajd_uid: string;
+slide_uid: string;
 status?: string | null;
 overall_class?: string | number | null;
 created_at?: string | null;
@@ -34,5 +34,5 @@ add_info?: string | null;
 };
 
 
-export type User = { email: string; imie?: string; nazwisko?: string; rola?: string };
+export type User = { email: string; name?: string; surname?: string; role?: string };
 export type Mode = "home" | "add" | "old" | "login";

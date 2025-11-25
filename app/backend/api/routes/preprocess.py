@@ -16,10 +16,9 @@ from classification_slide.attention_models import AttentionMIL, predict_attentio
 router = APIRouter(tags=["preprocess"])
 
 load_dotenv()
-# API_KEY = os.getenv("API_KEY")
 
 model_mil = AttentionMIL(
-    input_dim=3,    
+    input_dim=3,
     hidden_dim=128,
     num_classes=len(['HSIL', 'LSIL', 'NSIL']),
     dropout=0.5
@@ -45,7 +44,7 @@ async def gridfs_upload_disk(bucket, path: str, content_type: str = "image/png")
 async def process_image(
     request: Request,
     file: UploadFile = File(...),
-    pacjent_id: Optional[str] = None,
+    patient_uid: Optional[str] = None,
     user=Depends(get_current_doctor),
     gemini=False
 ):
@@ -68,12 +67,12 @@ async def process_image(
 
     if gemini:
         response = analyze_with_gemini(
-                bbox_image_path, features_list, predict_fused, probs, pred, probability
-            )
+                    bbox_image_path, features_list, predict_fused, probs, pred, probability
+                )
     else: 
         response = analyze_with_ollama(
-                    bbox_image_path, features_list, predict_fused, probs_list, pred, probability, model='qwen2.5vl:7b', stream=False,
-                ) #llama3.2-vision
+                        bbox_image_path, features_list, predict_fused, probs_list, pred, probability, model='qwen2.5vl:7b', stream=False,
+                    )
         
     prob_dict = None
     if probability is not None:
@@ -82,10 +81,10 @@ async def process_image(
             for i in range(len(probability))
         }
     now = datetime.datetime.utcnow()
-    pacjent_uid = pacjent_id or "UNKNOWN"
+    patient_uid = patient_uid or "UNKNOWN"
 
-    await mongo.db[mongo.COLL["pacjenci"]].find_one_and_update(
-        {"pacjent_uid": pacjent_uid},
+    await mongo.db[mongo.COLL["patients"]].find_one_and_update(
+        {"patient_uid": patient_uid},
         {"$setOnInsert": {"created_at": now}},
         upsert=True, return_document=ReturnDocument.AFTER
     )
@@ -93,10 +92,10 @@ async def process_image(
     bbox_name = await gridfs_upload_disk(mongo.slides_bucket, bbox_image_path, "image/png")
     bbox_url  = file_url(request, "slides", bbox_name)
 
-    slajd_uid = uuid.uuid4().hex
+    slide_uid = uuid.uuid4().hex
     slide_doc = {
-        "slajd_uid": slajd_uid,
-        "pacjent_uid": pacjent_uid,
+        "slide_uid": slide_uid,
+        "patient_uid": patient_uid,
         "created_at": now,
         "status": "processed",
         "overall_class": None,
@@ -105,20 +104,17 @@ async def process_image(
         "bbox_url": bbox_url,
         "add_info": None,
         "probability": prob_dict,
+        "access": [{
+            "doctor_uid": user["doctor_uid"],
+            "role": "owner",
+            "granted_by": user["doctor_uid"],
+            "granted_at": now,
+            "revoked_at": None,
+            "active": True,
+            "note": "" 
+        }]
     }
-    await mongo.db[mongo.COLL["slajdy"]].insert_one(slide_doc)
-
-    slide_lek_doc = {
-        "slajd_uid": slajd_uid,
-        "lekarz_uid": user["lekarz_uid"],
-        "rola": "owner",
-        "granted_by": user["lekarz_uid"],
-        "granted_at": now,
-        "revoked_at": None,
-        "active": True,
-        "note": ""  
-    }
-    await mongo.db[mongo.COLL["access"]].insert_one(slide_lek_doc)
+    await mongo.db[mongo.COLL["slides"]].insert_one(slide_doc)
 
     def convert_np(obj):
         import numpy as _np
@@ -171,8 +167,8 @@ async def process_image(
     explanation = slide_summary.get("explanation", "")
     slide_summary_text = f"{overall_class} (confidence {confidence:.3f}) — {explanation}".strip()
 
-    await mongo.db[mongo.COLL["slajdy"]].update_one(
-        {"slajd_uid": slajd_uid},
+    await mongo.db[mongo.COLL["slides"]].update_one(
+        {"slide_uid": slide_uid},
         {"$set": {"overall_class": overall_class, "slide_summary_text": slide_summary_text}}
     )
 
@@ -187,7 +183,7 @@ async def process_image(
 
     crop_public_urls: dict[str, str] = {}
     crop_gridfs_names: dict[str, str] = {}
-    komorki_docs = []
+    cell_docs = []
 
     for cell_id, cpath in (crop_paths or {}).items():
         try:
@@ -195,8 +191,8 @@ async def process_image(
             curl = file_url(request, "crops", crop_name)
             cid = str(cell_id)
 
-            p_raw        = _pick(probs, cid) or {}
-            probs_map    = _to_prob_map(p_raw)
+            p_raw      = _pick(probs, cid) or {}
+            probs_map  = _to_prob_map(p_raw)
 
             features_map = _pick(features_list, cid) or {}
             features_map = {
@@ -213,28 +209,28 @@ async def process_image(
             crop_public_urls[cid] = curl
             crop_gridfs_names[cid] = crop_name
 
-            komorki_docs.append({
-                "komorka_uid": f"{slajd_uid}:{cid}",
-                "slajd_uid": slajd_uid,
-                "pacjent_uid": pacjent_uid,
+            cell_docs.append({
+                "cell_uid": f"{slide_uid}:{cid}",
+                "slide_uid": slide_uid,
+                "patient_uid": patient_uid,
                 "cell_id": cid,
-                "klasa": predicted,
+                "class": predicted,
                 "probs": probs_map,
                 "features": features_map,
                 "crop_gridfs_name": crop_name,
                 "crop_url": curl,
                 "created_at": now,
-                "explanation": cell_explanation,
+                "explanations": {"explanation": cell_explanation},
             })
         except Exception:
             continue
 
-    if komorki_docs:
-        await mongo.db[mongo.COLL["komorki"]].insert_many(komorki_docs)
+    if cell_docs:
+        await mongo.db[mongo.COLL["cells"]].insert_many(cell_docs)
 
     return JSONResponse({
-        "slide_uid": slajd_uid,
-        "pacjent_uid": pacjent_uid,
+        "slide_uid": slide_uid,
+        "patient_uid": patient_uid,
         "bbox_public_url": bbox_url,
         "crop_public_urls": crop_public_urls,
         "crop_gridfs_names": crop_gridfs_names,

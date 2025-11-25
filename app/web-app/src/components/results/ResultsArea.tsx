@@ -50,11 +50,12 @@ export default function ResultsArea({
   const [shareEmail, setShareEmail] = useState("");
   const [shareLoading, setShareLoading] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const BASE_API_URL = import.meta.env.VITE_API_URL;
+  // const BASE_API_URL = import.meta.env.VITE_API_URL;
+  const BASE_API_URL = "http://localhost:8000"
 
   // zgodność: backend może zwracać slide_uid albo slajd_uid
   const slideUid = useMemo(
-    () => (results as any)?.slide_uid ?? (results as any)?.slajd_uid ?? null,
+    () => (results as any)?.slide_uid ?? (results as any)?.slide_uid ?? null,
     [results]
   );
 
@@ -255,7 +256,7 @@ export default function ResultsArea({
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Patient ID</p>
                     <p className="text-sm font-mono break-all">
-                      {(results as any).pacjent_uid ?? "—"}
+                      {(results as any).patient_uid ?? "—"}
                     </p>
                   </div>
                 </div>
