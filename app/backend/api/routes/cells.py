@@ -34,6 +34,7 @@ async def get_slide(slide_uid: str, request: Request, user=Depends(get_current_d
     features_list: dict[str, dict] = {}
     crop_public_urls: dict[str, str] = {}
     crop_gridfs_names: dict[str, str] = {}
+    cells_explanations: dict[str, dict] = {}
     
     lime_explanations: dict[str, dict] = {} 
     gradcam_explanations: dict[str, dict] = {} 
@@ -51,6 +52,10 @@ async def get_slide(slide_uid: str, request: Request, user=Depends(get_current_d
         
         if k.get("crop_url"): crop_public_urls[cell_id] = k["crop_url"]
         if k.get("crop_gridfs_name"): crop_gridfs_names[cell_id] = k["crop_gridfs_name"]
+
+        explanation = k.get("explanation", "")
+        if explanation:
+            cells_explanations[cell_id] = {"explanation": explanation}
         
         lime_data = k.get("lime_data")
         if lime_data:
@@ -78,7 +83,7 @@ async def get_slide(slide_uid: str, request: Request, user=Depends(get_current_d
         "crop_public_urls": crop_public_urls,
         "crop_gridfs_names": crop_gridfs_names,
         "add_info": slide.get("add_info"),
-        
+        "cells_explanations": cells_explanations, 
         "lime_explanations": lime_explanations, 
         "gradcam_explanations": gradcam_explanations,
         "probability": slide.get("probability")

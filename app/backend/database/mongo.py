@@ -108,7 +108,7 @@ VALIDATORS = {
                     "crop_gridfs_name": {"bsonType": ["string","null"]},
                     "crop_url": {"bsonType": ["string","null"]},
                     "created_at": {"bsonType": "date"},
-                    "explanations": {"bsonType": ["object","null"]},
+                    "explanations": {"bsonType": ["string","null"]},
                     "gradcam_data": {
                         "bsonType": ["object", "null"],
                         "properties": {

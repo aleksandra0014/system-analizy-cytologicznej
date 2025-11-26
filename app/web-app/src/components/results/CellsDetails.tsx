@@ -29,8 +29,8 @@ export default function CellsDetails(props: {
   const [correctedClasses, setCorrectedClasses] = useState<Record<string, string>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletedIds, setDeletedIds] = useState<Record<string, true>>({});
-  // const BASE_API_URL = import.meta.env.VITE_API_URL;
-  const BASE_API_URL = "http://localhost:8000"
+  const BASE_API_URL = import.meta.env.VITE_API_URL;
+  // const BASE_API_URL = "http://localhost:8000"
   // Filtry: tylko HSIL / LSIL / NSIL
   type CellClass = "HSIL" | "LSIL" | "NSIL";
   type FilterKey = CellClass | "HSIL/LSIL_group";

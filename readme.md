@@ -8,12 +8,12 @@ docker-compose up --build
 ### 2. Pobranie modelu VLM
 Połącz się z kontenerem Ollama:
 ```bash
-docker exec -it ollama /bin/bash
+docker exec -it cytology_ollama /bin/bash
 ```
 
 Następnie pobierz model:
 ```bash
-ollama pull qwen2.5-7b-chat
+ollama pull qwen2.5vl:7b
 ```
 
 ### 3. Rejestracja użytkownika

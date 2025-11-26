@@ -220,7 +220,7 @@ async def process_image(
                 "crop_gridfs_name": crop_name,
                 "crop_url": curl,
                 "created_at": now,
-                "explanations": {"explanation": cell_explanation},
+                "explanation": cell_explanation,
             })
         except Exception:
             continue

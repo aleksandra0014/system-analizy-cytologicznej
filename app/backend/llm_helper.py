@@ -238,8 +238,8 @@ def analyze_with_ollama(
     }
     }
 
-    url = "http://localhost:11434/api/chat"
-    # url = f"{OLLAMA_URL}/api/chat"
+    # url = "http://localhost:11434/api/chat"
+    url = f"{OLLAMA_URL}/api/chat"
 
     if stream:
         with requests.post(url, json=payload, stream=True) as r:

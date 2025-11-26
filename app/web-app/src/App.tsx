@@ -57,9 +57,9 @@ export default function App() {
   const [savingAddInfo, setSavingAddInfo] = useState(false);
   const [saveAddInfoMsg, setSaveAddInfoMsg] = useState<string | null>(null);
 
-  const BASE_API_URL = "http://localhost:8000"
-  // = import.meta.env.VITE_API_URL;
-
+  const BASE_API_URL=import.meta.env.VITE_API_URL;
+  // = "http://localhost:8000"
+ 
   // auth helpers
   const checkMe = async () => {
     try {
@@ -223,7 +223,7 @@ export default function App() {
       setAddInfoDraft("");
 
       // Przykład użycia w Twoim pliku API
-      // const BASE_API_URL = import.meta.env.VITE_API_URL;
+      const BASE_API_URL = import.meta.env.VITE_API_URL;
 
       // Zrób zapytanie, używając zmiennej środowiskowej
       const resp = await api(`${BASE_API_URL}/slide/${encodeURIComponent(selectedSlide.trim())}`);

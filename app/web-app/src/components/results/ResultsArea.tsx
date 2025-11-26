@@ -50,8 +50,8 @@ export default function ResultsArea({
   const [shareEmail, setShareEmail] = useState("");
   const [shareLoading, setShareLoading] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  // const BASE_API_URL = import.meta.env.VITE_API_URL;
-  const BASE_API_URL = "http://localhost:8000"
+  const BASE_API_URL = import.meta.env.VITE_API_URL;
+  // const BASE_API_URL = "http://localhost:8000"
 
   // zgodność: backend może zwracać slide_uid albo slajd_uid
   const slideUid = useMemo(
