@@ -1,11 +1,20 @@
 ## Instalacja i konfiguracja aplikacji
 
-### 1. Uruchomienie kontenerów
+### 1. Pobranie modeli 
+
+* **Pobierz Modele:**
+    * Skorzystaj z linku do Dysku Google, aby pobrać wszystkie pliki modeli: **[Pobierz Modele Aplikacji]**(https://drive.google.com/drive/folders/1N_Wlv6McMAUv3i7iV_oHIK61UxiQh6Gu?usp=drive_link).
+* **Utwórz Folder:**
+    * W głównym katalogu projektu (tam, gdzie znajduje się plik `docker-compose.yml`) utwórz nowy folder o nazwie: **`models`**.
+* **Wklej Pliki:**
+    * Wklej **pobrane pliki modeli** do nowo utworzonego folderu **`models`**.
+
+### 2. Uruchomienie kontenerów
 ```bash
 docker-compose up --build
 ```
 
-### 2. Pobranie modelu VLM
+### 3. Pobranie modelu VLM
 Połącz się z kontenerem Ollama:
 ```bash
 docker exec -it cytology_ollama /bin/bash
@@ -16,8 +25,8 @@ Następnie pobierz model:
 ollama pull qwen2.5vl:7b
 ```
 
-### 3. Rejestracja użytkownika
+### 4. Rejestracja użytkownika
 Przejdź do interfejsu Swagger pod adresem [http://localhost:8000/docs](http://localhost:8000/docs) i użyj endpointu `auth_register` do utworzenia konta.
 
-### 4. Gotowe!
+### 5. Gotowe!
 Aplikacja jest skonfigurowana i gotowa do użycia.
