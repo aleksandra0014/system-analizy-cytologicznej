@@ -21,7 +21,7 @@ export default function TopBar({ user, goHome, doLogout }: { user: User | null; 
             <>
               <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-full">
                 <UserIcon className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-gray-700">{user.imie} {user.nazwisko}</span>
+                <span className="text-sm text-gray-700">{user.name} {user.surname}</span>
               </div>
               <Button onClick={doLogout} variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600">
                 <LogOut className="w-4 h-4" />

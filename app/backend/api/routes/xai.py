@@ -111,13 +111,11 @@ async def gradcam(request: Request, payload: GradcamIn, user=Depends(get_current
     overlay_url = file_url(request, "xai", ov_name)
     heatmap_url = file_url(request, "xai", hm_name)
     activation_url = file_url(request, "xai", ac_name)
-
+    
     class_names = {0: "HSIL", 1: "LSIL", 2: "NSIL"}
     predicted_class = class_names.get(class_idx, str(class_idx))
-
-    await mongo.db[mongo.COLL["gradcam"]].insert_one({
-        "komorka_uid": None,
-        "created_at": datetime.datetime.utcnow(),
+    
+    gradcam_data = {
         "predicted_class": predicted_class,
         "overlay_gridfs_name": ov_name,
         "heatmap_gridfs_name": hm_name,
@@ -125,7 +123,13 @@ async def gradcam(request: Request, payload: GradcamIn, user=Depends(get_current
         "overlay_url": overlay_url,
         "heatmap_url": heatmap_url,
         "activation_url": activation_url
-    })
+    }
+    
+    if payload.cell_uid:
+        await mongo.db[mongo.COLL["cells"]].update_one(
+            {"cell_uid": payload.cell_uid},
+            {"$set": {"gradcam_data": gradcam_data}}
+        )
 
     return JSONResponse({
         "overlay_url": overlay_url,
@@ -137,8 +141,9 @@ async def gradcam(request: Request, payload: GradcamIn, user=Depends(get_current
 @router.post("/lime/")
 async def lime_explain(request: Request, payload: LimeIn, user=Depends(get_current_doctor)):
     features_map = payload.features
-    if (not features_map) and payload.komorka_uid:
-        kom = await mongo.db[mongo.COLL["komorki"]].find_one({"komorka_uid": payload.komorka_uid}, {"features": 1})
+    
+    if (not features_map) and payload.cell_uid:
+        kom = await mongo.db[mongo.COLL["cells"]].find_one({"cell_uid": payload.cell_uid}, {"features": 1})
         if not kom: raise HTTPException(status_code=404, detail="Cell not found")
         features_map = kom.get("features", {})
 
@@ -156,11 +161,16 @@ async def lime_explain(request: Request, payload: LimeIn, user=Depends(get_curre
     await gridfs_upload_bytes(mongo.xai_bucket, html_name, html_str, "text/html")
     html_url = file_url(request, "xai", html_name)
 
-    await mongo.db[mongo.COLL["lime"]].insert_one({
-        "komorka_uid": payload.komorka_uid,
-        "created_at": datetime.datetime.utcnow(),
+    # Aktualizacja: Zapis wyników LIME bezpośrednio do zagnieżdżonego pola w dokumencie cells
+    lime_data = {
         "html_gridfs_name": html_name,
         "html_url": html_url
-    })
+    }
+    
+    if payload.cell_uid:
+        await mongo.db[mongo.COLL["cells"]].update_one(
+            {"cell_uid": payload.cell_uid},
+            {"$set": {"lime_data": lime_data}}
+        )
 
     return JSONResponse({"html_url": html_url})

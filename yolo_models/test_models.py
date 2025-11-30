@@ -14,20 +14,48 @@ EPS = 1e-9
 
 # NOWE: Progi confidence dla każdej klasy
 CLASS_CONF_THRESHOLDS = {
-    0: 0.5,  # cell
-    1: 0.5    # HSIL_group
+    0: 0.35,  # cell
+    1: 0.35    # HSIL_group
 }
 
 from typing import List, Tuple, Optional, Any, Dict
 
-def load_yolo_label_file(path: str) -> np.ndarray:
+def apply_clahe(
+    image: np.ndarray,
+    clip_limit: float = 2.0,
+    tile_grid_size: tuple = (8, 8),
+    use_median: bool = False,
+    median_kernel: int = 3
+) -> np.ndarray:
     """
-    Load YOLO format label file.
+    Apply CLAHE to a RGB image.
+
     Args:
-        path: Path to the label file.
+        image (np.ndarray): Input image.
+        clip_limit (float): Maximum histogram height (Hmax).
+        tile_grid_size (tuple): Block size (e.g., (8,8)).
+        use_median (bool): Whether to apply median filter before CLAHE.
+        median_kernel (int): Median window size (must be odd).
+
     Returns:
-        np.ndarray: Array of shape (N, 5) where each row is [class_id, cx, cy, w, h].
+        np.ndarray: CLAHE-processed image (same shape as input).
     """
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+
+        if use_median:
+            l = cv2.medianBlur(l, median_kernel)
+
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+        l_clahe = clahe.apply(l)
+
+        lab_clahe = cv2.merge((l_clahe, a, b))
+        result = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)
+        return result
+    return image
+
+def load_yolo_label_file(path: str) -> np.ndarray:
     if not os.path.exists(path):
         return np.zeros((0,5), float)
     rows = []
@@ -38,19 +66,7 @@ def load_yolo_label_file(path: str) -> np.ndarray:
                 rows.append([float(x) for x in p])
     return np.array(rows, float) if rows else np.zeros((0,5), float) 
 
-
 def yolo_to_xyxy(lbl_arr: np.ndarray, W: int, H: int) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Convert YOLO label array to (x1, y1, x2, y2) format.
-    Args:
-        lbl_arr: Array of shape (N, 5) in YOLO format.
-        W: Image width.
-        H: Image height.
-    Returns:
-        Tuple[np.ndarray, np.ndarray]:
-            - Array of shape (N, 4) with bounding boxes in xyxy format.
-            - Array of class indices (N,).
-    """
     if lbl_arr.size == 0:
         return np.zeros((0,4), float), np.zeros((0,), int)
     cls = lbl_arr[:,0].astype(int)
@@ -61,14 +77,6 @@ def yolo_to_xyxy(lbl_arr: np.ndarray, W: int, H: int) -> Tuple[np.ndarray, np.nd
     return np.stack([x1,y1,x2,y2], axis=1), cls
 
 def iou_matrix(A: np.ndarray, B: np.ndarray) -> np.ndarray:
-    """
-    Compute IoU matrix between two sets of boxes.
-    Args:
-        A: Array of shape (N, 4) for GT boxes.
-        B: Array of shape (M, 4) for predicted boxes.
-    Returns:
-        np.ndarray: IoU matrix of shape (N, M).
-    """
     if A.shape[0]==0 or B.shape[0]==0:
         return np.zeros((A.shape[0], B.shape[0]), float)
     ax1, ay1, ax2, ay2 = A[:,0:1], A[:,1:2], A[:,2:3], A[:,3:4]
@@ -83,18 +91,8 @@ def iou_matrix(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     return (inter/np.maximum(union, 1e-9)).squeeze()
 
 def greedy_match(iou_mat: np.ndarray, thr: float = 0.5) -> List[Tuple[int, int]]:
-    """
-    Class-agnostic 1-1 matching by IoU.
-    Args:
-        iou_mat: IoU matrix (N, M).
-        thr: IoU threshold for matching.
-    Returns:
-        List of (gi, pi) tuples for matched GT and prediction indices.
-    """
-    matches: List[Tuple[int, int]] = []
+    matches = []
     if iou_mat.size == 0:
-        return matches
-    if len(iou_mat.shape) < 2 or iou_mat.shape[0] == 0 or iou_mat.shape[1] == 0:
         return matches
     M = iou_mat.copy()
     while True:
@@ -108,14 +106,6 @@ def greedy_match(iou_mat: np.ndarray, thr: float = 0.5) -> List[Tuple[int, int]]
     return matches
 
 def has_labels(image_dir: str, label_dir: Optional[str] = None) -> bool:
-    """
-    Check if the dataset has label files.
-    Args:
-        image_dir: Directory with images.
-        label_dir: Directory with label files (if None, uses image_dir).
-    Returns:
-        bool: True if at least one label file exists.
-    """
     img_exts = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
     images = [f for f in os.listdir(image_dir) if f.lower().endswith(img_exts)]
     
@@ -123,24 +113,14 @@ def has_labels(image_dir: str, label_dir: Optional[str] = None) -> bool:
         return False
     
     label_path = label_dir or image_dir
-    for fn in images[:5]:  # Check first 5 images
+    for fn in images[:5]:
         base, _ = os.path.splitext(fn)
         lbl_path = os.path.join(label_path, base + ".txt")
         if os.path.exists(lbl_path):
             return True
     return False
 
-def apply_class_specific_conf(pred_cls: np.ndarray, pred_conf: np.ndarray, 
-                               conf_thresholds: Dict[int, float]) -> np.ndarray:
-    """
-    Filtruj predykcje używając progów confidence specyficznych dla klas.
-    Args:
-        pred_cls: Klasy predykcji (N,)
-        pred_conf: Confidence predykcji (N,)
-        conf_thresholds: Dict mapujący class_id -> threshold
-    Returns:
-        Boolean mask (N,) wskazujący które predykcje przekraczają progi
-    """
+def apply_class_specific_conf(pred_cls, pred_conf, conf_thresholds):
     mask = np.zeros(len(pred_cls), dtype=bool)
     for class_id, threshold in conf_thresholds.items():
         class_mask = (pred_cls == class_id) & (pred_conf >= threshold)
@@ -148,28 +128,11 @@ def apply_class_specific_conf(pred_cls: np.ndarray, pred_conf: np.ndarray,
     return mask
 
 def evaluate_multiclass_detector_with_pr(
-    model: Any,
-    image_dir: str,
-    label_dir: Optional[str] = None,
-    conf_thresholds: Optional[Dict[int, float]] = None,
-    iou_thresh: float = 0.5
-) -> Dict[str, Any]:
-    """
-    Evaluate multiclass detector with confusion matrix, metrics, and PR curve data.
-    Args:
-        model: YOLO model object.
-        image_dir: Directory with images.
-        label_dir: Directory with label files (if None, uses image_dir).
-        conf_thresholds: Dict with class-specific confidence thresholds.
-        iou_thresh: IoU threshold for matching.
-    Returns:
-        Dict with confusion_matrix, labels, per_class metrics, macro_f1, accuracy, and pr_data.
-        Returns None if no labels are available.
-    """
+    model, image_dir, label_dir=None, conf_thresholds=None, iou_thresh=0.5
+):
     if conf_thresholds is None:
         conf_thresholds = CLASS_CONF_THRESHOLDS
     
-    # Sprawdź czy są dostępne labele
     if not has_labels(image_dir, label_dir):
         print(f"  ⚠️ Brak plików z labelami dla {image_dir} - pomijam ewaluację")
         return None
@@ -179,7 +142,6 @@ def evaluate_multiclass_detector_with_pr(
     nC = len(CLASS_NAMES); BG = nC
     C = np.zeros((nC+1, nC+1), dtype=int)
     
-    # Zbieranie danych dla krzywej PR
     all_predictions = {k: [] for k in range(nC)}
 
     for fn in images:
@@ -187,13 +149,11 @@ def evaluate_multiclass_detector_with_pr(
         base, _ = os.path.splitext(fn)
         lbl_path = os.path.join(label_dir or image_dir, base + ".txt")
 
-        # GT
         img = Image.open(img_path).convert("RGB")
         W, H = img.size
         gt_raw = load_yolo_label_file(lbl_path)
         gt_boxes, gt_cls = yolo_to_xyxy(gt_raw, W, H)
 
-        # Pred
         r = model(img_path, conf=0.01, verbose=False)[0]
         if r.boxes is None or len(r.boxes)==0:
             pred_boxes = np.zeros((0,4), float)
@@ -204,62 +164,51 @@ def evaluate_multiclass_detector_with_pr(
             pred_cls   = r.boxes.cls.cpu().numpy().astype(int)
             pred_conf  = r.boxes.conf.cpu().numpy()
 
-        # NOWE: Filtruj używając progów specyficznych dla klas
         conf_mask = apply_class_specific_conf(pred_cls, pred_conf, conf_thresholds)
         pred_boxes_cm = pred_boxes[conf_mask]
         pred_cls_cm = pred_cls[conf_mask]
         pred_conf_cm = pred_conf[conf_mask]
         
-        # Dopasowanie class-agnostic dla CM
         IoU_cm = iou_matrix(gt_boxes, pred_boxes_cm)
         matches_cm = greedy_match(IoU_cm, thr=iou_thresh)
         matched_gt_cm = {gi for gi,_ in matches_cm}
         matched_pd_cm = {pi for _,pi in matches_cm}
-        
-        # Dla PR curve używamy WSZYSTKICH detekcji (conf >= 0.01)
+
         IoU_pr = iou_matrix(gt_boxes, pred_boxes)
         matches_pr = greedy_match(IoU_pr, thr=iou_thresh)
         matched_pd_pr = {pi for _,pi in matches_pr}
         
-        # 1) dopasowane: GT vs Pred wg klas
         for gi, pi in matches_cm:
             gk = int(gt_cls[gi]); pk = int(pred_cls_cm[pi])
             if gk >= nC: gk = BG
             if pk >= nC: pk = BG
             C[gk, pk] += 1
 
-        # 2) GT bez dopasowania -> FN
         for gi in range(len(gt_boxes)):
             if gi not in matched_gt_cm:
                 gk = int(gt_cls[gi]); 
                 if gk >= nC: gk = BG
                 C[gk, BG] += 1
 
-        # 3) Pred bez dopasowania -> FP
         for pi in range(len(pred_boxes_cm)):
             if pi not in matched_pd_cm:
                 pk = int(pred_cls_cm[pi]); 
                 if pk >= nC: pk = BG
                 C[BG, pk] += 1
 
-        # Zbieranie danych dla PR curve
         for pi in range(len(pred_boxes)):
             pk = int(pred_cls[pi])
             if pk >= nC:
                 continue
-            
             confidence = float(pred_conf[pi])
             is_tp = False
-            
             if pi in matched_pd_pr:
                 gi = next(gi for gi, p in matches_pr if p == pi)
                 gk = int(gt_cls[gi])
                 if gk == pk:
                     is_tp = True
-            
             all_predictions[pk].append((confidence, is_tp))
 
-    # Obliczanie liczby GT per klasa
     gt_counts = {k: 0 for k in range(nC)}
     for fn in images:
         base, _ = os.path.splitext(fn)
@@ -273,19 +222,13 @@ def evaluate_multiclass_detector_with_pr(
             if gk < nC:
                 gt_counts[int(gk)] += 1
 
-    # Obliczanie PR curve dla każdej klasy
     pr_data = {}
     for k in range(nC):
         preds = all_predictions[k]
         n_gt = gt_counts[k]
         
         if len(preds) == 0 or n_gt == 0:
-            pr_data[k] = {
-                "precisions": np.array([]),
-                "recalls": np.array([]),
-                "thresholds": np.array([]),
-                "ap": 0.0
-            }
+            pr_data[k] = {"precisions": np.array([]),"recalls": np.array([]),"thresholds": np.array([]),"ap": 0.0}
             continue
         
         preds_sorted = sorted(preds, key=lambda x: x[0], reverse=True)
@@ -297,14 +240,14 @@ def evaluate_multiclass_detector_with_pr(
         tp_cumsum = 0
         fp_cumsum = 0
         
-        for i, (conf, is_tp) in enumerate(preds_sorted):
+        for conf, is_tp in preds_sorted:
             if is_tp:
                 tp_cumsum += 1
             else:
                 fp_cumsum += 1
             
-            precision = tp_cumsum / (tp_cumsum + fp_cumsum) if (tp_cumsum + fp_cumsum) > 0 else 0
-            recall = tp_cumsum / n_gt if n_gt > 0 else 0
+            precision = tp_cumsum / (tp_cumsum + fp_cumsum)
+            recall = tp_cumsum / n_gt
             
             precisions.append(precision)
             recalls.append(recall)
@@ -314,7 +257,7 @@ def evaluate_multiclass_detector_with_pr(
         recalls = np.array(recalls)
         
         precisions = np.concatenate([[1.0], precisions, [0.0]])
-        recalls = np.concatenate([[0.0], recalls, [recalls[-1] if len(recalls) > 0 else 0.0]])
+        recalls = np.concatenate([[0.0], recalls, [recalls[-1]]])
         
         for i in range(len(precisions) - 2, -1, -1):
             precisions[i] = max(precisions[i], precisions[i + 1])
@@ -328,7 +271,6 @@ def evaluate_multiclass_detector_with_pr(
             "ap": float(ap)
         }
 
-    # Metryki per klasa
     per_class = []
     for k in range(nC):
         TP = C[k,k]
@@ -362,13 +304,7 @@ def evaluate_multiclass_detector_with_pr(
         "conf_thresholds": conf_thresholds
     }
 
-def plot_confusion_matrix(
-    cm: np.ndarray,
-    labels: List[str],
-    normalize: bool = False,
-    title: str = "Confusion Matrix"
-) -> Any:
-    """Plot confusion matrix."""
+def plot_confusion_matrix(cm, labels, normalize=False, title="Confusion Matrix"):
     M = cm.astype(float)
     if normalize:
         row_sums = M.sum(axis=1, keepdims=True)
@@ -388,30 +324,22 @@ def plot_confusion_matrix(
     plt.tight_layout()
     return fig
 
-def plot_pr_curve(pr_data: Dict[int, Dict], class_names: List[str]) -> Any:
-    """Plot Precision-Recall curve."""
+def plot_pr_curve(pr_data, class_names):
     fig, ax = plt.subplots(figsize=(10, 8))
     colors = plt.cm.tab10(np.linspace(0, 1, len(class_names)))
     
     for k, data in pr_data.items():
         if len(data["recalls"]) == 0:
             continue
-        recalls = data["recalls"]
-        precisions = data["precisions"]
-        ap = data["ap"]
-        ax.plot(recalls, precisions, linewidth=2, color=colors[k],
-                label=f'{class_names[k]} (AP={ap:.3f})')
+        ax.plot(data["recalls"], data["precisions"], linewidth=2, color=colors[k],
+                label=f'{class_names[k]} (AP={data["ap"]:.3f})')
     
-    ax.set_xlabel('Recall', fontsize=12)
-    ax.set_ylabel('Precision', fontsize=12)
-    ax.set_title('Precision-Recall Curve', fontsize=14)
-    ax.legend(loc='best', fontsize=10)
-    ax.grid(True, alpha=0.3)
-    ax.set_xlim([0, 1])
-    ax.set_ylim([0, 1])
+    ax.set_xlabel('Recall'); ax.set_ylabel('Precision')
+    ax.set_title('Precision-Recall Curve')
+    ax.legend(); ax.grid(True, alpha=0.3)
+    ax.set_xlim([0, 1]); ax.set_ylim([0, 1])
     plt.tight_layout()
     return fig
-
 
 # ============== MAIN EXECUTION ==============
 
@@ -455,11 +383,22 @@ for model_path in models_paths:
     model_dir = os.path.dirname(model_path)
     model_name = os.path.basename(os.path.dirname(model_dir))
 
-    # Wizualizacja predykcji - NOWE: użyj najniższego progu dla wizualizacji
     min_conf = min(CLASS_CONF_THRESHOLDS.values())
     print(f"  ℹ️  Używane progi confidence: {CLASS_CONF_THRESHOLDS}")
-    print(f"  ℹ️  Wizualizacja używa min conf={min_conf} (będzie filtrowane per klasa)")
+    print(f"  ℹ️  Wizualizacja: cell=czerwony, HSIL_group=żółty")
+
+    # Kolory dla każdej klasy (RGB)
+    colors = {
+        0: (255, 0, 0),    # cell - czerwony
+        1: (255, 255, 0)   # HSIL_group - żółty
+    }
     
+    # Grubość linii dla każdej klasy
+    line_widths = {
+        0: 10,   # cell - grubsza linia
+        1: 10    # HSIL_group - najgrubsza linia
+    }
+
     for folder in test_folders:
         if folder not in test_samples_per_folder:
             continue
@@ -469,18 +408,61 @@ for model_path in models_paths:
 
         n_cols = 5
         n_rows = math.ceil(len(sample_files) / n_cols)
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 4))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 6, n_rows * 6))
         axes = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
 
         for idx, file_name in enumerate(sample_files):
             img_path = os.path.join(folder, file_name)
             print(f"  🖼️  Przetwarzanie: {file_name}")
-            results = model(img_path, conf=min_conf)
-            # result_img = results[0].plot()
-            result_img = results[0].plot(pil=True)  # Zwróci PIL Image
-            # result_img_rgb = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
-            axes[idx].imshow(result_img)
-            axes[idx].set_title(file_name, fontsize=10)
+
+            # Wczytaj obraz
+            img = cv2.imread(img_path)
+            
+            # Zastosuj CLAHE
+            # img = apply_clahe(
+            #     img,
+            #     clip_limit=2.0,
+            #     tile_grid_size=(8, 8),
+            #     use_median=True,
+            #     median_kernel=3
+            # )
+            
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            # Predykcja
+            results = model(img_path, conf=min_conf, verbose=False)
+
+            # Rysuj bounding boxy
+            if results[0].boxes is not None:
+                for box in results[0].boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+                    conf = float(box.conf[0])
+                    cls = int(box.cls[0])
+                    
+                    # Pobierz kolor i grubość dla klasy
+                    color = colors.get(cls, (255, 0, 0))
+                    line_width = line_widths.get(cls, 3)
+                    
+                    # Rysuj bbox
+                    cv2.rectangle(img_rgb, (x1, y1), (x2, y2), color, line_width)
+                    
+                    # Label z wyraźniejszym tekstem
+                    label = f"{CLASS_NAMES[cls]} {conf:.2f}"
+                    font_scale = 1
+                    font_thickness = 4
+                    (text_w, text_h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
+                    
+                    # Tło dla tekstu
+                    cv2.rectangle(img_rgb, (x1, y1 - text_h - baseline - 5), (x1 + text_w + 5, y1), color, -1)
+                    
+                    # Biały tekst z czarnym konturem dla lepszej czytelności
+                    cv2.putText(img_rgb, label, (x1 + 2, y1 - baseline - 2), 
+                                cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), font_thickness + 2)
+                    cv2.putText(img_rgb, label, (x1 + 2, y1 - baseline - 2), 
+                                cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), font_thickness)
+
+            axes[idx].imshow(img_rgb)
+            axes[idx].set_title(file_name, fontsize=12)
             axes[idx].axis("off")
 
         for j in range(len(sample_files), len(axes)):
@@ -492,13 +474,12 @@ for model_path in models_paths:
         os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, f"{last_two}.png")
 
-        plt.suptitle(f"Model: {model_name}\nFolder: {last_two}", fontsize=16)
-        plt.tight_layout()
-        plt.savefig(save_path)
+        plt.suptitle(f"Model: {model_name}\nFolder: {last_two}", fontsize=18, y=0.995)
+        plt.tight_layout(rect=[0, 0, 1, 0.99])
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
         plt.close()
         print(f"  ✅ Zapisano do: {save_path}")
     
-    # Ewaluacja z progami specyficznymi dla klas
     print(f"\n{'='*80}")
     print(f">>> Ewaluacja na: {metric_folder}")
     print(f"{'='*80}")
@@ -515,34 +496,28 @@ for model_path in models_paths:
         print("⏭️  Pomijam ewaluację - brak plików z labelami\n")
         continue
 
-    # Wyświetlanie wyników
-    print(f"\n📊 WYNIKI (z progami per klasa):")
+    print(f"\n📊 WYNIKI:")
     print(f"  Accuracy  = {metrics['accuracy']:.4f}")
     print(f"  Macro-F1  = {metrics['macro_f1']:.4f}")
     print(f"  mAP       = {metrics['mean_ap']:.4f}\n")
     
     for r in metrics["per_class"]:
         print(f"  [{r['class_name']:12s}]  F1={r['f1']:.4f}  P={r['precision']:.4f}  "
-              f"R={r['recall']:.4f}  AP={r['ap']:.4f}  TP={r['TP']} FP={r['FP']} FN={r['FN']}  "
-              f"(conf={r['conf_threshold']})")
+              f"R={r['recall']:.4f}  AP={r['ap']:.4f}  TP={r['TP']} FP={r['FP']} FN={r['FN']}")
 
-    # Zapisywanie wykresów
     save_dir = os.path.join(output_root, model_name)
     os.makedirs(save_dir, exist_ok=True)
 
-    fig = plot_confusion_matrix(metrics["confusion_matrix"], metrics["labels"],
-                                normalize=False, title="Confusion Matrix (counts)")
+    fig = plot_confusion_matrix(metrics["confusion_matrix"], metrics["labels"], normalize=False)
     fig.savefig(os.path.join(save_dir, "cm_counts.png"), dpi=200); plt.close(fig)
 
-    fig = plot_confusion_matrix(metrics["confusion_matrix"], metrics["labels"],
-                                normalize=True, title="Confusion Matrix Normalized")
+    fig = plot_confusion_matrix(metrics["confusion_matrix"], metrics["labels"], normalize=True)
     fig.savefig(os.path.join(save_dir, "cm_normalized.png"), dpi=200); plt.close(fig)
 
     fig = plot_pr_curve(metrics["pr_data"], CLASS_NAMES)
     fig.savefig(os.path.join(save_dir, "pr_curve.png"), dpi=200); plt.close(fig)
     print(f"\n✅ Zapisano wykresy do: {save_dir}")
 
-    # CSV z metrykami
     csv_path = os.path.join(output_root, "metrics_summary.csv")
     file_exists = os.path.isfile(csv_path)
     with open(csv_path, mode='a', newline='') as csvfile:

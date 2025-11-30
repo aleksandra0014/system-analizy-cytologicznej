@@ -10,57 +10,66 @@ from app.backend.database import mongo
 
 router = APIRouter(tags=["doctors"])
 
-@router.post("/slide/{slajd_uid}/share-by-email", status_code=status.HTTP_200_OK)
+@router.post("/slide/{slide_uid}/share-by-email", status_code=status.HTTP_200_OK)
 async def share_slide_by_email(
-    slajd_uid: str,
+    slide_uid: str,
     email: str,
     user=Depends(get_current_doctor),
 ):
-    slide = await mongo.db[mongo.COLL["slajdy"]].find_one(
-        {"slajd_uid": slajd_uid},
-        {"_id": 0, "slajd_uid": 1, "lekarz_uid": 1}
+    user_uid = user.get("doctor_uid")
+    
+    slide_doc = await mongo.db[mongo.COLL["slides"]].find_one(
+        {"slide_uid": slide_uid},
+        {"_id": 0, "slide_uid": 1, "access": 1}
     )
-    if not slide:
+    if not slide_doc:
         raise HTTPException(status_code=404, detail="Slide not found")
 
-    role_doc = await mongo.db[mongo.COLL["access"]].find_one(
-        {"slajd_uid": slajd_uid, "lekarz_uid": user.get("lekarz_uid"), "active": True},
-        {"_id": 0, "rola": 1}
+    access = slide_doc.get("access", [])
+    user_access = next(
+        (item for item in access if item.get("doctor_uid") == user_uid and item.get("active")),
+        None
     )
+    role = user_access.get("role") if user_access else None
 
-    role = role_doc.get("rola") if role_doc else None
-
-    if user.get("rola") != "admin" and role != "owner":
+    if user.get("role") != "admin" and role != "owner":
         raise HTTPException(status_code=403, detail="Tylko właściciel slajdu lub admin może udostępniać")
 
-    lekarz = await mongo.db[mongo.COLL["lekarze"]].find_one(
+    doctor_doc = await mongo.db[mongo.COLL["doctors"]].find_one(
         {"email": email},
-        {"_id": 0, "lekarz_uid": 1, "email": 1}
+        {"_id": 0, "doctor_uid": 1, "email": 1}
     )
-    if not lekarz or not lekarz.get("lekarz_uid"):
+    if not doctor_doc or not doctor_doc.get("doctor_uid"):
         raise HTTPException(status_code=404, detail="Lekarz o podanym e-mailu nie istnieje")
 
-    target_uid = lekarz["lekarz_uid"]
+    target_uid = doctor_doc["doctor_uid"]
     now = datetime.datetime.utcnow()
 
-    await mongo.db[mongo.COLL["access"]].update_one(
-        {"slajd_uid": slajd_uid, "lekarz_uid": target_uid},
-        {"$set": {
-            "rola": "viewer",
-            "active": True,
-            "granted_by": user.get("lekarz_uid"),
-            "granted_at": now,
-            "revoked_at": None,
-            "note":""
-        }},
-        upsert=True
+    new_access_detail = {
+        "doctor_uid": target_uid,
+        "role": "viewer",
+        "active": True,
+        "granted_by": user_uid,
+        "granted_at": now,
+        "revoked_at": None,
+        "note": ""
+    }
+
+    await mongo.db[mongo.COLL["slides"]].update_one(
+        {"slide_uid": slide_uid, "access.doctor_uid": target_uid},
+        {"$pull": {"access": {"doctor_uid": target_uid}}}
+    )
+
+    await mongo.db[mongo.COLL["slides"]].update_one(
+        {"slide_uid": slide_uid},
+        {"$push": {"access": new_access_detail}},
+        upsert=False
     )
 
     return {
         "status": "ok",
-        "slajd_uid": slajd_uid,
-        "lekarz_uid": target_uid,
-        "rola": "viewer",
+        "slide_uid": slide_uid,
+        "doctor_uid": target_uid,
+        "role": "viewer",
         "active": True
     }
-

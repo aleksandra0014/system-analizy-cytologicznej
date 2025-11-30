@@ -15,13 +15,13 @@ async def get_current_doctor(request: Request):
     email = payload.get("sub")
     if not email:
         raise HTTPException(status_code=401, detail="Invalid token payload")
-    user = await mongo.db[mongo.COLL["lekarze"]].find_one({"email": email})
-    if not user or user.get("aktywny") is False:
+    user = await mongo.db[mongo.COLL["doctors"]].find_one({"email": email})
+    if not user or user.get("active") is False:
         raise HTTPException(status_code=403, detail="User inactive or not found")
     return {
         "email": user["email"],
-        "imie": user.get("imie"),
-        "nazwisko": user.get("nazwisko"),
-        "rola": user.get("rola", "doctor"),
-        "lekarz_uid": user["lekarz_uid"],
+        "name": user.get("name"),
+        "surname": user.get("surname"),
+        "role": user.get("role", "doctor"),
+        "doctor_uid": user["doctor_uid"],
     }

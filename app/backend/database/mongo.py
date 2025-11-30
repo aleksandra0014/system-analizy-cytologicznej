@@ -3,7 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from pymongo import MongoClient as SyncMongoClient
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-MONGO_DB  = os.getenv("MONGO_DB",  "lbc_db")
+MONGO_DB  = os.getenv("MONGO_DB",  "lbc_db2")
 
 client: AsyncIOMotorClient | None = None
 db = None
@@ -13,58 +13,57 @@ crops_bucket:  AsyncIOMotorGridFSBucket | None = None
 xai_bucket:    AsyncIOMotorGridFSBucket | None = None
 
 COLL = {
-    "lekarze":  "lekarze",
-    "pacjenci": "pacjenci",
-    "slajdy":   "slajdy",
-    "komorki":  "komorki",
-    "gradcam":  "gradcam",
-    "lime":     "lime",
-    "access": "access",
+    "doctors":  "doctors",
+    "patients": "patients",
+    "slides":   "slides",
+    "cells":  "cells",
+    "gradcam":  "cells", 
+    "lime":     "cells",
+    "access": "slides",
 }
 
 VALIDATORS = {
-    COLL["lekarze"]: {
+    COLL["doctors"]: {
         "validator": {
             "$jsonSchema": {
                 "bsonType": "object",
-                "required": ["imie", "nazwisko", "email", "created_at"],
+                "required": ["doctor_uid", "name", "surname", "email", "created_at"],
                 "properties": {
-                    "lekarz_uid": {"bsonType": "string"},
-                    "imie": {"bsonType": "string"},
-                    "nazwisko": {"bsonType": "string"},
+                    "doctor_uid": {"bsonType": "string"},
+                    "name": {"bsonType": "string"},
+                    "surname": {"bsonType": "string"},
                     "email": {"bsonType": "string"},
-                    "telefon": {"bsonType": ["string","null"]},
-                    "rola": {"enum": ["doctor", "admin", "tech", "viewer"]},
-                    "aktywny": {"bsonType": ["bool","null"]},
+                    "phone": {"bsonType": ["string","null"]},
+                    "role": {"enum": ["doctor", "admin", "tech", "viewer"]},
+                    "active": {"bsonType": ["bool","null"]},
                     "password_hash": {"bsonType": ["string","null"]},
                     "created_at": {"bsonType": "date"}
                 }
             }
         }
     },
-    COLL["pacjenci"]: {
+    COLL["patients"]: {
         "validator": {
             "$jsonSchema": {
                 "bsonType": "object",
-                "required": ["pacjent_uid", "created_at"],
+                "required": ["patient_uid", "created_at"],
                 "properties": {
-                    "pacjent_uid": {"bsonType": "string"},
-                    "choroba": {"bsonType": ["string","null"]},
-                    "slajd": {"bsonType": ["string","null"]},
+                    "patient_uid": {"bsonType": "string"},
+                    "slide": {"bsonType": ["string","null"]},
                     "created_at": {"bsonType": "date"}
                 }
             }
         }
     },
-    COLL["slajdy"]: {
+    COLL["slides"]: {
         "validator": {
             "$jsonSchema": {
                 "bsonType": "object",
-                "required": ["slajd_uid","pacjent_uid","created_at"],
+                "required": ["slide_uid","patient_uid","created_at"],
                 "properties": {
-                    "slajd_uid": {"bsonType": "string"},
-                    "pacjent_uid": {"bsonType": "string"},
-                    "lekarz_uid": {"bsonType": ["string","null"]},
+                    "slide_uid": {"bsonType": "string"},
+                    "patient_uid": {"bsonType": "string"},
+                    "doctor_uid": {"bsonType": ["string","null"]},
                     "created_at": {"bsonType": "date"},
                     "status": {"enum": ["new","processed","failed"]},
                     "overall_class": {"bsonType": ["string","null"]},
@@ -72,79 +71,66 @@ VALIDATORS = {
                     "bbox_gridfs_name": {"bsonType": ["string","null"]},
                     "bbox_url": {"bsonType": ["string","null"]},
                     "add_info": {"bsonType": ["string","null"]},
-                    "probability": {"bsonType": ["object","null"]}
+                    "probability": {"bsonType": ["object","null"]},
+                    "access": {
+                        "bsonType": ["array", "null"],
+                        "items": {
+                            "bsonType": "object",
+                            "required": ["doctor_uid", "granted_by", "granted_at", "role", "active"],
+                            "properties": {
+                                "doctor_uid": {"bsonType": "string"},
+                                "role": {"enum": ["owner", "viewer"]}, 
+                                "granted_by": {"bsonType": "string"},
+                                "granted_at": {"bsonType": "date"},
+                                "revoked_at": {"bsonType": ["date","null"]},
+                                "active": {"bsonType": "bool"},
+                                "note": {"bsonType": ["string","null"]}
+                            }
+                        }
+                    }
                 }
             }
         }
     },
-    COLL["komorki"]: {
+    COLL["cells"]: {
         "validator": {
             "$jsonSchema": {
                 "bsonType": "object",
-                "required": ["komorka_uid","slajd_uid","pacjent_uid","cell_id","created_at"],
+                "required": ["cell_uid","slide_uid","patient_uid","cell_id","created_at"],
                 "properties": {
-                    "komorka_uid": {"bsonType": "string"},
-                    "slajd_uid": {"bsonType": "string"},
-                    "pacjent_uid": {"bsonType": "string"},
+                    "cell_uid": {"bsonType": "string"},
+                    "slide_uid": {"bsonType": "string"},
+                    "patient_uid": {"bsonType": "string"},
                     "cell_id": {"bsonType": "string"},
-                    "klasa": {"bsonType": ["string","null"]},
+                    "class": {"bsonType": ["string","null"]},
                     "probs": {"bsonType": "object"},
                     "features": {"bsonType": "object"},
                     "crop_gridfs_name": {"bsonType": ["string","null"]},
                     "crop_url": {"bsonType": ["string","null"]},
                     "created_at": {"bsonType": "date"},
-                    "explanations": {"bsonType": ["object","null"]}
-                }
-            }
-        }
-    },
-    COLL["gradcam"]: {
-        "validator": {
-            "$jsonSchema": {
-                "bsonType": "object",
-                "required": ["created_at"],
-                "properties": {
-                    "komorka_uid": {"bsonType": ["string","null"]},
-                    "created_at": {"bsonType": "date"},
-                    "predicted_class": {"bsonType": ["string","null"]},
-                    "overlay_gridfs_name": {"bsonType": ["string","null"]},
-                    "heatmap_gridfs_name": {"bsonType": ["string","null"]},
-                    "activation_gridfs_name": {"bsonType": ["string","null"]},
-                    "overlay_url": {"bsonType": ["string","null"]},
-                    "heatmap_url": {"bsonType": ["string","null"]},
-                    "activation_url": {"bsonType": ["string","null"]}
-                }
-            }
-        }
-    },
-    COLL["lime"]: {
-        "validator": {
-            "$jsonSchema": {
-                "bsonType": "object",
-                "required": ["created_at","html_gridfs_name"],
-                "properties": {
-                    "komorka_uid": {"bsonType": ["string","null"]},
-                    "created_at": {"bsonType": "date"},
-                    "html_gridfs_name": {"bsonType": "string"},
-                    "html_url": {"bsonType": ["string","null"]}
-                }
-            }
-        }
-    }, 
-    COLL["access"]: {
-        "validator": {
-            "$jsonSchema": {
-                "bsonType": "object",
-                "required": ["slajd_uid", "lekarz_uid", "granted_by", "granted_at", "rola", "active"],
-                "properties": {
-                    "slajd_uid": {"bsonType": "string"},
-                    "lekarz_uid": {"bsonType": "string"},
-                    "rola": {"enum": ["owner", "viewer"]}, 
-                    "granted_by": {"bsonType": "string"},
-                    "granted_at": {"bsonType": "date"},
-                    "revoked_at": {"bsonType": ["date","null"]},
-                    "active": {"bsonType": "bool"},
-                    "note": {"bsonType": ["string","null"]}
+                    "explanations": {"bsonType": ["string","null"]},
+                    "gradcam_data": {
+                        "bsonType": ["object", "null"],
+                        "properties": {
+                            "created_at": {"bsonType": "date"},
+                            "predicted_class": {"bsonType": ["string","null"]},
+                            "overlay_gridfs_name": {"bsonType": ["string","null"]},
+                            "heatmap_gridfs_name": {"bsonType": ["string","null"]},
+                            "activation_gridfs_name": {"bsonType": ["string","null"]},
+                            "overlay_url": {"bsonType": ["string","null"]},
+                            "heatmap_url": {"bsonType": ["string","null"]},
+                            "activation_url": {"bsonType": ["string","null"]}
+                        }
+                    },
+                    "lime_data": {
+                        "bsonType": ["object", "null"],
+                        "required": ["html_gridfs_name"],
+                        "properties": {
+                            "created_at": {"bsonType": "date"},
+                            "html_gridfs_name": {"bsonType": "string"},
+                            "html_url": {"bsonType": ["string","null"]}
+                        }
+                    }
                 }
             }
         }
@@ -152,38 +138,26 @@ VALIDATORS = {
 }
 
 INDEXES = {
-    COLL["lekarze"]: [
+    COLL["doctors"]: [
         ( [("email", 1)], {"unique": True} ),
-        ( [("lekarz_uid", 1)], {"unique": False} ),
+        ( [("doctor_uid", 1)], {"unique": False} ),
     ],
-    COLL["pacjenci"]: [
-        ( [("pacjent_uid", 1)], {"unique": True} ),
+    COLL["patients"]: [
+        ( [("patient_uid", 1)], {"unique": True} ),
         ( [("created_at", -1)], {} ),
     ],
-    COLL["slajdy"]: [
-        ( [("slajd_uid", 1)], {"unique": True} ),
-        ( [("pacjent_uid", 1), ("created_at", -1)], {} ),
+    COLL["slides"]: [
+        ( [("slide_uid", 1)], {"unique": True} ),
+        ( [("patient_uid", 1), ("created_at", -1)], {} ),
         ( [("status", 1)], {} ),
+        ( [("access.doctor_uid", 1), ("access.active", 1)], {} ),
     ],
-    COLL["komorki"]: [
-        ( [("komorka_uid", 1)], {"unique": True} ),
-        ( [("slajd_uid", 1), ("cell_id", 1)], {"unique": True} ),
-        ( [("pacjent_uid", 1), ("created_at", -1)], {} ),
-        ( [("klasa", 1)], {} ),
+    COLL["cells"]: [
+        ( [("cell_uid", 1)], {"unique": True} ),
+        ( [("slide_uid", 1), ("cell_id", 1)], {"unique": True} ),
+        ( [("patient_uid", 1), ("created_at", -1)], {} ),
+        ( [("class", 1)], {} ),
     ],
-    COLL["gradcam"]: [
-        ( [("komorka_uid", 1), ("created_at", -1)], {} ),
-    ],
-    COLL["lime"]: [
-        ( [("komorka_uid", 1), ("created_at", -1)], {} ),
-    ],
-    COLL["access"]: [
-    ( [("slajd_uid", 1), ("lekarz_uid", 1)],
-      {"unique": True, "partialFilterExpression": {"active": True}} ),
-    ( [("lekarz_uid", 1), ("active", 1)], {} ),
-    ( [("slajd_uid", 1), ("active", 1)], {} ),
-    ( [("rola", 1)], {} )
-    ]
 }
 
 async def connect() -> None:

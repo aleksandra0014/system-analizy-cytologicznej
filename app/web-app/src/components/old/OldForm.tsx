@@ -36,7 +36,7 @@ export default function OldForm({ patients, selectedPatient, setSelectedPatient,
             <select className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value={selectedPatient} onChange={(e) => { const v = e.target.value; setSelectedPatient(v); onRefreshSlides(v); }}>
               <option value="">Choose a patient...</option>
               {patients.map((p) => (
-                <option key={p.pacjent_uid} value={p.pacjent_uid}>{p.pacjent_uid}</option>
+                <option key={p.patient_uid} value={p.patient_uid}>{p.patient_uid}</option>
               ))}
             </select>
           </div>
@@ -48,8 +48,8 @@ export default function OldForm({ patients, selectedPatient, setSelectedPatient,
                 {slides.map((s) => {
                   const classLabel = s.overall_class ? mapClass(s.overall_class) : null;
                   return (
-                    <option key={s.slajd_uid} value={s.slajd_uid}>
-                      {s.slajd_uid}
+                    <option key={s.slide_uid} value={s.slide_uid}>
+                      {s.slide_uid}
                       {classLabel && ` • ${classLabel}`}
                       {s.created_at && ` • ${formatDateTime(s.created_at)}`}
                     </option>

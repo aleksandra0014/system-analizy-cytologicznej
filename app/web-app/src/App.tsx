@@ -57,12 +57,13 @@ export default function App() {
   const [savingAddInfo, setSavingAddInfo] = useState(false);
   const [saveAddInfoMsg, setSaveAddInfoMsg] = useState<string | null>(null);
 
-  const BASE_API_URL = import.meta.env.VITE_API_URL;
-
+  const BASE_API_URL=import.meta.env.VITE_API_URL;
+  // = "http://localhost:8000"
+ 
   // auth helpers
   const checkMe = async () => {
     try {
-      const r = await api(`${BASE_API_URL}/auth/me`);
+      const r = await fetch(`${BASE_API_URL}/auth/me`, { credentials: "include" });;
       if (r.ok) {
         setUser(await r.json());
         setMode("home");
@@ -83,7 +84,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, haslo: password }),
+      body: JSON.stringify({ email, password: password }),
     });
     if (!r.ok) {
       const t = await r.text();
@@ -148,7 +149,7 @@ export default function App() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const url = `${BASE_API_URL}/process-image/?pacjent_id=${encodeURIComponent(patientId || "UNKNOWN")}`;
+      const url = `${BASE_API_URL}/process-image/?patient_uid=${encodeURIComponent(patientId || "UNKNOWN")}`;
 
       const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
       if (!response.ok) {
@@ -296,6 +297,8 @@ export default function App() {
     const cropGridName = results?.crop_gridfs_names?.[cellId];
     if (!cropUrl && !cropGridName) return;
 
+    const cellUid = results?.slide_uid ? `${results.slide_uid}:${cellId}` : selectedSlide ? `${selectedSlide}:${cellId}` : null;
+
     setGradcamOpen(true);
     setGradcamForId(cellId);
     setGradcamData(null);
@@ -303,7 +306,8 @@ export default function App() {
     setGradcamLoading(true);
 
     try {
-      const body = cropGridName ? { crop_gridfs_name: cropGridName } : { image_url: cropUrl };
+      const body: Record<string, any> = cropGridName ? { crop_gridfs_name: cropGridName } : { image_url: cropUrl };
+      if (cellUid) body.cell_uid = cellUid;
       const resp = await fetch(`${BASE_API_URL}/gradcam/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -325,17 +329,18 @@ export default function App() {
   };
 
   const openLime = async (cellId: string) => {
-    const komorkaUid = results?.slide_uid ? `${results.slide_uid}:${cellId}` : selectedSlide ? `${selectedSlide}:${cellId}` : null;
+    const cellUid = results?.slide_uid ? `${results.slide_uid}:${cellId}` : selectedSlide ? `${selectedSlide}:${cellId}` : null; 
 
-    const haveFeatures = !!results?.features_list?.[cellId];
-    const payload: any = {};
-    if (haveFeatures) payload.features = results!.features_list![cellId];
-    else if (komorkaUid) payload.komorka_uid = komorkaUid;
-    else {
-      setLimeErrorById((p) => ({ ...p, [cellId]: "No features or komorka_uid" }));
-      return;
-    }
-
+  const haveFeatures = !!results?.features_list?.[cellId];
+  const payload: Record<string, any> = {}; 
+  if (haveFeatures) payload.features = results!.features_list![cellId];
+  
+  if (cellUid) payload.cell_uid = cellUid; 
+    
+  if (!haveFeatures && !cellUid) {
+   setLimeErrorById((p) => ({ ...p, [cellId]: "No features or cell_uid available" })); 
+   return;
+  }
     setLimeLoadingId(cellId);
     setLimeErrorById((p) => { const q = { ...p }; delete q[cellId]; return q; });
 
@@ -367,7 +372,7 @@ export default function App() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ klasa_corrected: newClass }),
+      body: JSON.stringify({ class_corrected: newClass }),
     });
     if (!res.ok) {
       const txt = await res.text();

@@ -30,6 +30,7 @@ export default function CellsDetails(props: {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletedIds, setDeletedIds] = useState<Record<string, true>>({});
   const BASE_API_URL = import.meta.env.VITE_API_URL;
+  // const BASE_API_URL = "http://localhost:8000"
   // Filtry: tylko HSIL / LSIL / NSIL
   type CellClass = "HSIL" | "LSIL" | "NSIL";
   type FilterKey = CellClass | "HSIL/LSIL_group";
@@ -49,7 +50,7 @@ export default function CellsDetails(props: {
   };
 
   const handleDeleteCell = async (cellId: string) => {
-    const slideUid = results?.slide_uid || (results as any)?.slajd_uid;
+    const slideUid = results?.slide_uid || (results as any)?.slide_uid;
     if (!slideUid) {
       alert("Brak identyfikatora slajdu – nie mogę usunąć komórki.");
       return;

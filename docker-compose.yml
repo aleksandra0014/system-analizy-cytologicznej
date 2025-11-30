@@ -6,16 +6,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cytology_backend
+    container_name: cytology_backend2
     ports:
       - "8000:8000"
     environment:
       MONGO_URI: mongodb://mongo:27017
-      MONGO_DB: lbc_db
+      MONGO_DB: lbc_db2
       OLLAMA_URL: http://ollama:11434
       CNN_MODEL_PATH: /app/models/16_0_0001_50_1110.pth
       UNET_MODEL_PATH: /app/models/unet_cell_nucleus_batch16_1_11.pth
-      YOLO_MODEL_PATH: /app/models/yolo.pt
+      YOLO_MODEL_PATH: /app/models/yolo2.pt
       ML_MODEL_PATH: /app/models/best_model_RandomForest_311.pkl
       ATTENTION_MODEL: /app/models/best_attention_mil_model.pth
       PORT: 8000 
@@ -28,7 +28,7 @@ services:
 
   ollama:
     image: ollama/ollama 
-    container_name: cytology_ollama
+    container_name: cytology_ollama2
     ports:
       - "11434:11434"
     volumes:
@@ -38,7 +38,7 @@ services:
 
   mongo:
     image: mongo:6.0
-    container_name: cytology_mongo
+    container_name: cytology_mongo2
     restart: always
     volumes:
       - mongo_data:/data/db
@@ -50,7 +50,7 @@ services:
     build:
       context: ./app/web-app
       dockerfile: Dockerfile 
-    container_name: cytology_frontend_dev
+    container_name: cytology_frontend_dev2
     ports:
       - "5173:5173" 
     depends_on:
