@@ -11,7 +11,7 @@ from PIL import Image
 import io
 from typing import Any, Mapping
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/chat")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 def to_builtin(obj):
     """Recursively convert numpy types to Python builtins so they can be JSON-serialized."""
     if isinstance(obj, (np.integer, )):
