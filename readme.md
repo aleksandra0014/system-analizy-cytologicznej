@@ -17,13 +17,14 @@ docker-compose up --build
 ### 3. Pobranie modelu VLM
 Połącz się z kontenerem Ollama:
 ```bash
-docker exec -it cytology_ollama /bin/bash
+docker exec -it cytology_ollama2 /bin/bash
 ```
 
 Następnie pobierz model:
 ```bash
 ollama pull qwen2.5vl:7b
 ```
+* Aby model działał odpowiednio w przypadku słabszych sprzętów należy ustawić limit pamięci Docker na minimum 16GB. * 
 
 ### 4. Rejestracja użytkownika
 Przejdź do interfejsu Swagger pod adresem [http://localhost:8000/docs](http://localhost:8000/docs) i użyj endpointu `auth_register` do utworzenia konta.
