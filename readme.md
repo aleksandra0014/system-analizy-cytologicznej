@@ -24,7 +24,7 @@ Następnie pobierz model:
 ```bash
 ollama pull qwen2.5vl:7b
 ```
-* Aby model działał odpowiednio w przypadku słabszych sprzętów należy ustawić limit pamięci Docker na minimum 16GB. * 
+* Aby model działał odpowiednio w przypadku słabszych sprzętów należy ustawić limit pamięci Docker na minimum 10GB. 
 
 ### 4. Rejestracja użytkownika
 Przejdź do interfejsu Swagger pod adresem [http://localhost:8000/docs](http://localhost:8000/docs) i użyj endpointu `auth_register` do utworzenia konta.
