@@ -8,11 +8,10 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import csv
 
-CLASS_NAMES = ["cell", "HSIL_group"]   # 0 -> cell, 1 -> HSIL_group
+CLASS_NAMES = ["cell", "HSIL_group"]  
 BG_NAME = "background"
 EPS = 1e-9
 
-# NOWE: Progi confidence dla każdej klasy
 CLASS_CONF_THRESHOLDS = {
     0: 0.35,  # cell
     1: 0.35    # HSIL_group
@@ -341,7 +340,6 @@ def plot_pr_curve(pr_data, class_names):
     plt.tight_layout()
     return fig
 
-# ============== MAIN EXECUTION ==============
 
 models_paths = [
     r'C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\16.0.001.augmentacja15_test22_adam\weights\best.pt',
@@ -363,17 +361,15 @@ metric_folder = r'data_yolo\syntetic_and_mine_test'
 num_samples = 10
 output_root = r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\tests\new"
 
-# Przygotowanie próbek
 test_samples_per_folder = {}
 for folder in test_folders:
     if not os.path.exists(folder):
-        print(f"⚠️ Folder nie istnieje: {folder}")
+        print(f"Folder nie istnieje: {folder}")
         continue
     image_files = [f for f in os.listdir(folder) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp'))]
     sample_files = random.sample(image_files, min(num_samples, len(image_files)))
     test_samples_per_folder[folder] = sample_files
 
-# Przetwarzanie modeli
 for model_path in models_paths:
     print(f"\n{'='*80}")
     print(f">>> Testowanie modelu: {model_path}")
@@ -384,26 +380,24 @@ for model_path in models_paths:
     model_name = os.path.basename(os.path.dirname(model_dir))
 
     min_conf = min(CLASS_CONF_THRESHOLDS.values())
-    print(f"  ℹ️  Używane progi confidence: {CLASS_CONF_THRESHOLDS}")
-    print(f"  ℹ️  Wizualizacja: cell=czerwony, HSIL_group=żółty")
+    print(f"  Używane progi confidence: {CLASS_CONF_THRESHOLDS}")
+    print(f"  Wizualizacja: cell=czerwony, HSIL_group=żółty")
 
-    # Kolory dla każdej klasy (RGB)
     colors = {
-        0: (255, 0, 0),    # cell - czerwony
-        1: (255, 255, 0)   # HSIL_group - żółty
+        0: (255, 0, 0),   
+        1: (255, 255, 0)   
     }
     
-    # Grubość linii dla każdej klasy
     line_widths = {
-        0: 10,   # cell - grubsza linia
-        1: 10    # HSIL_group - najgrubsza linia
+        0: 10,   
+        1: 10    
     }
 
     for folder in test_folders:
         if folder not in test_samples_per_folder:
             continue
             
-        print(f"\n📁 Folder testowy: {folder}")
+        print(f"\nFolder testowy: {folder}")
         sample_files = test_samples_per_folder[folder]
 
         n_cols = 5
@@ -413,49 +407,41 @@ for model_path in models_paths:
 
         for idx, file_name in enumerate(sample_files):
             img_path = os.path.join(folder, file_name)
-            print(f"  🖼️  Przetwarzanie: {file_name}")
+            print(f"Przetwarzanie: {file_name}")
 
-            # Wczytaj obraz
             img = cv2.imread(img_path)
             
-            # Zastosuj CLAHE
-            # img = apply_clahe(
-            #     img,
-            #     clip_limit=2.0,
-            #     tile_grid_size=(8, 8),
-            #     use_median=True,
-            #     median_kernel=3
-            # )
+            img = apply_clahe(
+                img,
+                clip_limit=2.0,
+                tile_grid_size=(8, 8),
+                use_median=True,
+                median_kernel=3
+            )
             
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-            # Predykcja
+        
             results = model(img_path, conf=min_conf, verbose=False)
 
-            # Rysuj bounding boxy
             if results[0].boxes is not None:
                 for box in results[0].boxes:
                     x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
                     conf = float(box.conf[0])
                     cls = int(box.cls[0])
                     
-                    # Pobierz kolor i grubość dla klasy
                     color = colors.get(cls, (255, 0, 0))
                     line_width = line_widths.get(cls, 3)
                     
-                    # Rysuj bbox
                     cv2.rectangle(img_rgb, (x1, y1), (x2, y2), color, line_width)
                     
-                    # Label z wyraźniejszym tekstem
                     label = f"{CLASS_NAMES[cls]} {conf:.2f}"
                     font_scale = 1
                     font_thickness = 4
                     (text_w, text_h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
                     
-                    # Tło dla tekstu
                     cv2.rectangle(img_rgb, (x1, y1 - text_h - baseline - 5), (x1 + text_w + 5, y1), color, -1)
                     
-                    # Biały tekst z czarnym konturem dla lepszej czytelności
                     cv2.putText(img_rgb, label, (x1 + 2, y1 - baseline - 2), 
                                 cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), font_thickness + 2)
                     cv2.putText(img_rgb, label, (x1 + 2, y1 - baseline - 2), 
@@ -478,7 +464,7 @@ for model_path in models_paths:
         plt.tight_layout(rect=[0, 0, 1, 0.99])
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         plt.close()
-        print(f"  ✅ Zapisano do: {save_path}")
+        print(f"Zapisano do: {save_path}")
     
     print(f"\n{'='*80}")
     print(f">>> Ewaluacja na: {metric_folder}")
@@ -493,10 +479,10 @@ for model_path in models_paths:
     )
 
     if metrics is None:
-        print("⏭️  Pomijam ewaluację - brak plików z labelami\n")
+        print("Pomijam ewaluację - brak plików z labelami\n")
         continue
 
-    print(f"\n📊 WYNIKI:")
+    print(f"\nWYNIKI:")
     print(f"  Accuracy  = {metrics['accuracy']:.4f}")
     print(f"  Macro-F1  = {metrics['macro_f1']:.4f}")
     print(f"  mAP       = {metrics['mean_ap']:.4f}\n")
@@ -516,7 +502,7 @@ for model_path in models_paths:
 
     fig = plot_pr_curve(metrics["pr_data"], CLASS_NAMES)
     fig.savefig(os.path.join(save_dir, "pr_curve.png"), dpi=200); plt.close(fig)
-    print(f"\n✅ Zapisano wykresy do: {save_dir}")
+    print(f"\nZapisano wykresy do: {save_dir}")
 
     csv_path = os.path.join(output_root, "metrics_summary.csv")
     file_exists = os.path.isfile(csv_path)
@@ -529,5 +515,5 @@ for model_path in models_paths:
                         str(CLASS_CONF_THRESHOLDS)])
 
 print(f"\n{'='*80}")
-print("✅ Wszystkie testy zakończone!")
+print("Wszystkie testy zakończone!")
 print(f"{'='*80}")

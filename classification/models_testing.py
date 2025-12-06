@@ -88,7 +88,7 @@ def test_model(
     y_true_bin = label_binarize(y_true, classes=[0, 1, 2])
     n_classes = y_true_bin.shape[1]
 
-    # ROC Curve - fioletowa kolorystyka
+    # ROC Curve 
     plt.figure(figsize=(7, 5))
     violet_palette = ["#260080", "#E22B53", '#9400D3'] 
     for i in range(n_classes):
@@ -105,7 +105,7 @@ def test_model(
     plt.tight_layout()
     plt.show()
 
-    # Precision-Recall Curve - fioletowa kolorystyka
+    # Precision-Recall Curve 
     plt.figure(figsize=(7, 5))
     for i in range(n_classes):
         precision, recall, _ = precision_recall_curve(y_true_bin[:, i], probs[:, i])

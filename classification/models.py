@@ -40,6 +40,8 @@ class CytologyClassifier:
 
         elif self.architecture == 'vgg16':
             self.model = models.vgg16(pretrained=True)
+            for param in self.model.features.parameters():
+                param.requires_grad = False
             for name, param in list(self.model.features.named_parameters())[-8:]:
                 param.requires_grad = True
             self.model.classifier = torch.nn.Sequential(
@@ -299,10 +301,10 @@ def run_gridsearch_kfold(
     results = []
 
     param_grid = list(itertools.product(architectures, lrs, batch_sizes, num_epochs_list))
-    print(f"🔍 Grid search over {len(param_grid)} combinations...")
+    print(f"Grid search over {len(param_grid)} combinations...")
 
     for arch, lr, batch_size, num_epochs in tqdm(param_grid):
-        print(f"\n🧪 Testing: arch={arch}, lr={lr}, batch_size={batch_size}, epochs={num_epochs}")
+        print(f"\nTesting: arch={arch}, lr={lr}, batch_size={batch_size}, epochs={num_epochs}")
         kf = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
 
         fold_accuracies = []
@@ -354,11 +356,11 @@ def run_gridsearch_kfold(
         }
         results.append(result)
 
-        print(f"✅ mean acc: {result['mean_accuracy']:.2f} | F1: {result['mean_f1']:.4f}")
+        print(f"Mean acc: {result['mean_accuracy']:.2f} | F1: {result['mean_f1']:.4f}")
 
     df = pd.DataFrame(results)
     df.to_csv(output_csv, index=False)
-    print(f"\n📄 Results saved to: {output_csv}")
+    print(f"\nResults saved to: {output_csv}")
 
 
 

@@ -147,7 +147,7 @@ def predict_ml_probs(model, label_encoder, input_features: dict) -> np.ndarray:
     except KeyError as e:
         raise ValueError(f"Brakuje cechy w słowniku: {e}")
 
-    proba = model.predict_proba(X_new)  # <-- tu nie używaj model["model"]
+    proba = model.predict_proba(X_new)  
     classes_model = list(label_encoder.classes_)   
     probs_aligned = np.zeros(len(CLASS_NAMES), dtype=np.float32)
     for i, cname in enumerate(CLASS_NAMES):

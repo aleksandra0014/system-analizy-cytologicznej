@@ -1,4 +1,4 @@
-# YOLOv8 
+# YOLOv11
 from ultralytics import YOLO
 
 data_yaml = 'yolo_models/data.yaml' 
@@ -8,16 +8,16 @@ model = YOLO(weights)
 model.train(
     data=data_yaml,
     epochs=100,
-    patience=20, # number of epochs with no improvement before stopping
-    imgsz=768, # size of input images, bigger because the cells are small and dense 
+    patience=20, 
+    imgsz=768, 
     batch=16,
-    optimizer='Adam', # optimizer to use
-    lr0=0.001, # initial learning rate
-    degrees=10,  # dodano augumentacje
+    optimizer='Adam', 
+    lr0=0.001, 
+    degrees=10,  
     translate=0.1,
     scale=0.5,
     fliplr=0.5,
-    name="16.0.001.augmentacja15_test22_adam", # name of the training run
+    name="16.0.001.augmentacja15_test22_adam", 
     project="yolo_models/models",
     pretrained=True
 )

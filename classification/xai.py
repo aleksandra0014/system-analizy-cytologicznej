@@ -83,7 +83,6 @@ def grad_cam(architecture, model_path, image_path):
     original_bgr = cv2.cvtColor(original_np, cv2.COLOR_RGB2BGR)
     overlay = cv2.addWeighted(original_bgr, 0.6, gradcam_color, 0.4, 0)
     
-    # === WYKRES 3-OBRAZKOWY ===
     plt.figure(figsize=(10, 5))
 
     plt.subplot(1, 3, 1)

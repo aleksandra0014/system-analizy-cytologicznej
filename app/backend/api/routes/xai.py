@@ -161,7 +161,6 @@ async def lime_explain(request: Request, payload: LimeIn, user=Depends(get_curre
     await gridfs_upload_bytes(mongo.xai_bucket, html_name, html_str, "text/html")
     html_url = file_url(request, "xai", html_name)
 
-    # Aktualizacja: Zapis wyników LIME bezpośrednio do zagnieżdżonego pola w dokumencie cells
     lime_data = {
         "html_gridfs_name": html_name,
         "html_url": html_url

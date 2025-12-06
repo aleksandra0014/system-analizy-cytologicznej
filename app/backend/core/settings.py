@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     MONGODB_URI: str = Field("mongodb://localhost:27017", alias="MONGO_URI")
     MONGODB_DB: str = Field("lbc_db2", alias="MONGO_DB")
 
-    JWT_SECRET: str = "change-me-in-env"
+    JWT_SECRET: str = ""
     JWT_ALG: str = "HS256"
     ACCESS_TTL_SECONDS: int = 60 * 60 * 12
     COOKIE_NAME: str = "lbc_session"

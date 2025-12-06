@@ -29,36 +29,9 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
-# # class DoubleConv(nn.Module):
-# #     def __init__(self, in_channels, out_channels):
-# #         super().__init__()
-# #         self.double_conv = nn.Sequential(
-# #             nn.Conv2d(in_channels, out_channels, 3, padding=1),
-# #             nn.BatchNorm2d(out_channels),
-# #             nn.ReLU(inplace=True),
-# #             nn.Conv2d(out_channels, out_channels, 3, padding=1),
-# #             nn.BatchNorm2d(out_channels),
-# #             nn.ReLU(inplace=True)
-# #         )
-
-# #     def forward(self, x):
-# #         return self.double_conv(x)
-
-# class DoubleConv(nn.Module):
-#     def __init__(self, in_channels, out_channels):
-#         super().__init__()
-#         self.double_conv = nn.Sequential(
-#             nn.Conv2d(in_channels, out_channels, 3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(out_channels, out_channels, 3, padding=1),
-#             nn.ReLU(inplace=True)
-#         )
-
-#     def forward(self, x):
-#         return self.double_conv(x)
 
 class UNet(nn.Module):
-    def __init__(self, in_channels=3, out_channels=2):  # 2 wyjścia: komórka i jądro
+    def __init__(self, in_channels=3, out_channels=2):  
         super().__init__()
         self.encoder1 = DoubleConv(in_channels, 64)
         self.pool1 = nn.MaxPool2d(2)
@@ -98,7 +71,6 @@ class UNet4Levels(nn.Module):
     def __init__(self, in_channels=1, out_channels=2):
         super().__init__()
         
-        # Encoder (Contracting Path)
         self.encoder1 = DoubleConv(in_channels, 64)
         self.pool1 = nn.MaxPool2d(2)
         
@@ -111,10 +83,8 @@ class UNet4Levels(nn.Module):
         self.encoder4 = DoubleConv(256, 512)
         self.pool4 = nn.MaxPool2d(2)
         
-        # Bottleneck
         self.bottleneck = DoubleConv(512, 1024)
         
-        # Decoder (Expanding Path)
         self.upconv4 = nn.ConvTranspose2d(1024, 512, 2, stride=2)
         self.decoder4 = DoubleConv(1024, 512)  # 1024 bo concat z encoder4
         
@@ -127,20 +97,16 @@ class UNet4Levels(nn.Module):
         self.upconv1 = nn.ConvTranspose2d(128, 64, 2, stride=2)
         self.decoder1 = DoubleConv(128, 64)    # 128 bo concat z encoder1
         
-        # Output Layer
         self.output_layer = nn.Conv2d(64, out_channels, 1)
 
     def forward(self, x):
-        # Encoder
         enc1 = self.encoder1(x)           # 64 kanałów
         enc2 = self.encoder2(self.pool1(enc1))  # 128 kanałów
         enc3 = self.encoder3(self.pool2(enc2))  # 256 kanałów
         enc4 = self.encoder4(self.pool3(enc3))  # 512 kanałów
         
-        # Bottleneck
         bottleneck = self.bottleneck(self.pool4(enc4))  # 1024 kanały
         
-        # Decoder z skip connections
         dec4 = self.upconv4(bottleneck)
         dec4 = torch.cat([dec4, enc4], dim=1)  # Concat po wymiarze kanałów
         dec4 = self.decoder4(dec4)
@@ -157,7 +123,6 @@ class UNet4Levels(nn.Module):
         dec1 = torch.cat([dec1, enc1], dim=1)
         dec1 = self.decoder1(dec1)
         
-        # Output
         return self.output_layer(dec1)
 
 def evaluate(model, val_loader, loss_fn, device, writer=None, step=None):
@@ -308,25 +273,21 @@ def test_model(model, test_loader, device, threshold_cell=0.5, threshold_nucleus
     with torch.no_grad():
         for images, masks in test_loader:
             images = images.to(device)
-            masks = masks.to(device) # Oczekiwany kształt: [B, 2, H, W]
+            masks = masks.to(device) 
 
-            outputs = torch.sigmoid(model(images)) # Kształt: [B, 2, H, W]
+            outputs = torch.sigmoid(model(images)) 
 
-            # Kanał 0: Komórka
             preds_cell = (outputs[:, 0] > threshold_cell).float()
             masks_cell = masks[:, 0]
             
-            # Kanał 1: Jądro
             preds_nucleus = (outputs[:, 1] > threshold_nucleus).float()
             masks_nucleus = masks[:, 1]
 
-            # Oblicz i zapisz metryki dla komórki (kanał 0)
             dice_cell_all.append(dice_score(preds_cell, masks_cell))
             iou_cell_all.append(iou_score(preds_cell, masks_cell))
             precision_cell_all.append(precision(preds_cell, masks_cell))
             recall_cell_all.append(recall(preds_cell, masks_cell))
             
-            # Oblicz i zapisz metryki dla jądra (kanał 1)
             dice_nucleus_all.append(dice_score(preds_nucleus, masks_nucleus))
             iou_nucleus_all.append(iou_score(preds_nucleus, masks_nucleus))
             precision_nucleus_all.append(precision(preds_nucleus, masks_nucleus))
@@ -399,10 +360,10 @@ def predict_masks(model, image_tensor, device, threshold_nuclei=0.3, threshold_c
     with torch.no_grad():
         image_tensor = image_tensor.to(device)
         output = model(image_tensor)
-        preds = torch.sigmoid(output).squeeze(0)  # [2, H, W]
+        preds = torch.sigmoid(output).squeeze(0) 
 
-        mask_cell = (preds[0] > threshold_cell).float().cpu().numpy()  # jądro
-        mask_nucleus = (preds[1] > threshold_nuclei).float().cpu().numpy()      # komórka
+        mask_cell = (preds[0] > threshold_cell).float().cpu().numpy() 
+        mask_nucleus = (preds[1] > threshold_nuclei).float().cpu().numpy()     
 
         # mask_cell = postprocess_mask(mask_cell)
         # mask_nucleus = postprocess_mask(mask_nucleus)
@@ -435,25 +396,11 @@ def select_best_nucleus(mask, image_shape):
 def test_model_with_thresholds(model, test_loader, device, 
                                 threshold_cell_range=[0.3, 0.4, 0.5, 0.6, 0.7],
                                 threshold_nucleus_range=[0.2, 0.3, 0.4, 0.5, 0.6]):
-    """
-    Testuje model z różnymi progami dla komórek i jąder
-    
-    Args:
-        model: model U-Net
-        test_loader: DataLoader z danymi testowymi
-        device: urządzenie (cuda/cpu)
-        threshold_cell_range: lista progów do testowania dla komórek
-        threshold_nucleus_range: lista progów do testowania dla jąder
-    
-    Returns:
-        dict: wyniki dla każdej kombinacji progów
-    """
     model.eval()
     model.to(device)
     
     results = {}
     
-    # Zbierz wszystkie predykcje i ground truth
     all_outputs = []
     all_masks = []
     
@@ -467,37 +414,31 @@ def test_model_with_thresholds(model, test_loader, device,
             all_outputs.append(outputs.cpu())
             all_masks.append(masks.cpu())
     
-    all_outputs = torch.cat(all_outputs, dim=0)  # [N, 2, H, W]
-    all_masks = torch.cat(all_masks, dim=0)      # [N, 2, H, W]
+    all_outputs = torch.cat(all_outputs, dim=0)  
+    all_masks = torch.cat(all_masks, dim=0)      
     
-    print(f"🔬 Testing {len(threshold_cell_range)} x {len(threshold_nucleus_range)} threshold combinations...\n")
+    print(f"Testing {len(threshold_cell_range)} x {len(threshold_nucleus_range)} threshold combinations...\n")
     
-    # Testuj każdą kombinację progów
     for thresh_cell in threshold_cell_range:
         for thresh_nucleus in threshold_nucleus_range:
-            # Zastosuj progi
             preds_cell = (all_outputs[:, 0] > thresh_cell).float()
             preds_nucleus = (all_outputs[:, 1] > thresh_nucleus).float()
             
-            # Oblicz metryki dla komórek (kanał 0)
             dice_cell = dice_score(preds_cell, all_masks[:, 0]).mean()
             iou_cell = iou_score(preds_cell, all_masks[:, 0]).mean()
             precision_cell = precision(preds_cell, all_masks[:, 0]).mean()
             recall_cell = recall(preds_cell, all_masks[:, 0]).mean()
             
-            # Oblicz metryki dla jąder (kanał 1)
             dice_nucleus = dice_score(preds_nucleus, all_masks[:, 1]).mean()
             iou_nucleus = iou_score(preds_nucleus, all_masks[:, 1]).mean()
             precision_nucleus = precision(preds_nucleus, all_masks[:, 1]).mean()
             recall_nucleus = recall(preds_nucleus, all_masks[:, 1]).mean()
             
-            # Średnie metryki
             avg_dice = (dice_cell + dice_nucleus) / 2
             avg_iou = (iou_cell + iou_nucleus) / 2
             avg_precision = (precision_cell + precision_nucleus) / 2
             avg_recall = (recall_cell + recall_nucleus) / 2
             
-            # Zapisz wyniki
             key = (thresh_cell, thresh_nucleus)
             results[key] = {
                 'cell': {
@@ -524,16 +465,7 @@ def test_model_with_thresholds(model, test_loader, device,
 
 
 def find_best_thresholds(results, metric='dice'):
-    """
-    Znajduje najlepsze progi na podstawie wybranej metryki
-    
-    Args:
-        results: dict z wynikami z test_model_with_thresholds
-        metric: metryka do optymalizacji ('dice', 'iou', 'precision', 'recall')
-    
-    Returns:
-        dict: najlepsze progi i ich wyniki
-    """
+
     best_score = -1
     best_thresholds = None
     best_results = None
@@ -553,10 +485,7 @@ def find_best_thresholds(results, metric='dice'):
 
 
 def print_threshold_results(results, top_n=5):
-    """
-    Wyświetla top N najlepszych kombinacji progów
-    """
-    # Sortuj według średniego Dice score
+
     sorted_results = sorted(results.items(), 
                            key=lambda x: x[1]['average']['dice'], 
                            reverse=True)
@@ -575,15 +504,11 @@ def print_threshold_results(results, top_n=5):
 
 
 def plot_threshold_heatmap(results, metric='dice'):
-    """
-    Wizualizuje wyniki jako heatmapy dla komórek i jąder
-    """
-    # Wyciągnij unikalne progi
+
     thresholds = list(results.keys())
     cell_thresholds = sorted(list(set([t[0] for t in thresholds])))
     nucleus_thresholds = sorted(list(set([t[1] for t in thresholds])))
     
-    # Przygotuj macierze wyników
     cell_matrix = np.zeros((len(nucleus_thresholds), len(cell_thresholds)))
     nucleus_matrix = np.zeros((len(nucleus_thresholds), len(cell_thresholds)))
     avg_matrix = np.zeros((len(nucleus_thresholds), len(cell_thresholds)))
@@ -595,7 +520,6 @@ def plot_threshold_heatmap(results, metric='dice'):
         nucleus_matrix[i, j] = res['nucleus'][metric]
         avg_matrix[i, j] = res['average'][metric]
     
-    # Plot
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
     im1 = axes[0].imshow(cell_matrix, cmap='YlOrRd', aspect='auto')
@@ -628,7 +552,6 @@ def plot_threshold_heatmap(results, metric='dice'):
     axes[2].set_yticklabels([f'{t:.2f}' for t in nucleus_thresholds])
     plt.colorbar(im3, ax=axes[2])
     
-    # Zaznacz najlepsze wartości
     best_idx = np.unravel_index(avg_matrix.argmax(), avg_matrix.shape)
     axes[2].plot(best_idx[1], best_idx[0], 'r*', markersize=20, markeredgecolor='white', markeredgewidth=2)
     
@@ -637,9 +560,7 @@ def plot_threshold_heatmap(results, metric='dice'):
 
 
 def compare_thresholds_visually(model, image_path, device, threshold_combinations):
-    """
-    Porównuje wizualizacje dla różnych kombinacji progów
-    """
+
     pil_image, input_tensor = preprocess_image(image_path)
     
     n_combinations = len(threshold_combinations)
@@ -705,14 +626,7 @@ def plot_images_from_filenames(model, device, folder_path, filenames,
                              select_nucleus=False, 
                              apply_morphology=False, 
                              kernel_size=5):         
-    """
-    Rysuje obrazy i ich maski, opcjonalnie stosując operacje morfologiczne
-    (otwieranie i zamykanie) w celu wygładzenia masek.
-    
-    Args:
-        apply_morphology (bool): Czy zastosować operacje morfologiczne.
-        kernel_size (int): Rozmiar kernela, jeśli apply_morphology=True.
-    """
+
     n = len(filenames)
     fig, axs = plt.subplots(n, 3, figsize=(12, 4 * n))
     if n == 1:

@@ -6,7 +6,7 @@ import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 from classification_slide.attention_models import AttentionMIL, predict_attention
-from test_gemini import analyze_with_ollama
+from llm_testing.test_llm_connect import analyze_with_ollama
 
 import torch
 import torch.nn.functional as F

@@ -13,7 +13,6 @@ from typing import Any, Mapping
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 def to_builtin(obj):
-    """Recursively convert numpy types to Python builtins so they can be JSON-serialized."""
     if isinstance(obj, (np.integer, )):
         return int(obj)
     if isinstance(obj, (np.floating, )):
@@ -37,7 +36,6 @@ def load_text(path: str) -> str:
 _CLASS_MAP = {0: "HSIL", 1: "LSIL", 2: "NSIL"}
 
 def _normalize_overall_class(value: Any) -> str:
-    """Przyjmij int 0/1/2 lub str i zwróć etykietę HSIL/LSIL/NSIL."""
     if isinstance(value, int):
         if value not in _CLASS_MAP:
             raise ValueError(f"Invalid overall_class index: {value}")

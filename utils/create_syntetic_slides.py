@@ -174,6 +174,6 @@ if __name__ == "__main__":
         with open(os.path.join(OUTPUT_LABELS, label_name), 'w') as f:
             f.write("\n".join(label_lines))
 
-    print("Gotowe! W folderach 'images/' i 'labels/' masz dane do trenowania YOLO.")
+    print("Gotowe!")
 
 

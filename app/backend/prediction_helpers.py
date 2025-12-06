@@ -34,23 +34,21 @@ warnings.filterwarnings("ignore")
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Ensure we load the .env located in the backend folder (app/backend/.env)
-# using an absolute path so imports/run-from-root still pick it up.
+
 env_path = Path(__file__).resolve().parent / ".env"
 if env_path.exists():
     load_dotenv(dotenv_path=str(env_path))
 else:
-    # fallback to default behavior (looks in CWD and parents)
     load_dotenv()
 
 CLASS_NAMES = os.getenv("CLASS_NAMES", "HSIL,LSIL,NSIL").split(",")
 ARCHITECTURE = os.getenv("ARCHITECTURE", "resnet18")
-CNN_MODEL_PATH = os.getenv("CNN_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\classification\classification_models\resnet18\16_0_0001_50_1110.pth")
-UNET_MODEL_PATH = os.getenv("UNET_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\unet4_cell_nucleus_4_50_1310.pth")
+CNN_MODEL_PATH = os.getenv("CNN_MODEL_PATH")
+UNET_MODEL_PATH = os.getenv("UNET_MODEL_PATH")
 THRESHOLD_NUCLEI = float(os.getenv("THRESHOLD_NUCLEI", 0.7))
 THRESHOLD_CELLS = float(os.getenv("THRESHOLD_CELLS", 0.3))
-YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\yolo_models\models\yolo_detector_2107_100_20_16_7682\weights\best.pt")
-ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", r"C:\Users\aleks\OneDrive\Documents\inzynierka\segmentation\models_paths\best_model_RandomForest_311.pkl")
+YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH")
+ML_MODEL_PATH = os.getenv("ML_MODEL_PATH")
 API_KEY = os.getenv("API_KEY", os.getenv("api_key", ''))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -63,9 +61,6 @@ yolo = YOLO(YOLO_MODEL_PATH)
 
 ml_model = joblib.load(ML_MODEL_PATH)
 label_encoder = ml_model['label_encoder']
-
-# fused_model = joblib.load(FUSED_MODEL_PATH)
-# label_encode_fused = fused_model['label_encoder']
 
 cnn_classifier = CytologyClassifier(num_classes=len(CLASS_NAMES), architecture=ARCHITECTURE)
 cnn_classifier.load(CNN_MODEL_PATH)
