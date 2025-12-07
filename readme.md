@@ -1,9 +1,12 @@
+## Demo działającej aplikacji dostępne pod linkiem: [Demo](https://drive.google.com/file/d/15xzWLNeSGDEwLmCINS6Td3Ps6H3wgcuO/view?usp=sharing)
+
+
 ## Instalacja i konfiguracja aplikacji
 
 ### 1. Pobranie modeli 
 
 * **Pobierz Modele:**
-    * Skorzystaj z linku do Dysku Google, aby pobrać wszystkie pliki modeli: (https://drive.google.com/drive/folders/1N_Wlv6McMAUv3i7iV_oHIK61UxiQh6Gu?usp=drive_link).
+    * Skorzystaj z linku do Dysku Google, aby pobrać wszystkie pliki modeli: [Modele](https://drive.google.com/drive/folders/1N_Wlv6McMAUv3i7iV_oHIK61UxiQh6Gu?usp=drive_link).
 * **Utwórz Folder:**
     * W głównym katalogu projektu (tam, gdzie znajduje się plik `docker-compose.yml`) utwórz nowy folder o nazwie: **`models`**.
 * **Wklej Pliki:**
